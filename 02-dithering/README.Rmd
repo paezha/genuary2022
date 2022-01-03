@@ -278,6 +278,26 @@ ggplot(data = img_frida_s %>%
   theme(legend.position = "none")
 ```
 
+## Aurora
+
+```{r dithering-frida-aurora, cache=TRUE}
+ggplot(data = img_frida_s %>%
+         filter(x >= 340 & x <= 440, y >= 620 & y <= 730), 
+       aes(x = x, 
+           y = y, 
+           color = gray)) +
+  geom_segment(aes(x = x1, y = y1,
+                   xend = xend, yend = yend,
+                   size = c),
+               alpha = 0.7) +
+  scale_color_manual(values = rev(mex.brewer("Aurora", 
+                                         n = 8))) +
+  scale_size(range = c(0.1, 1.5)) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
 ## Concha
 
 ```{r dithering-frida-concha, cache=TRUE}
@@ -311,26 +331,6 @@ ggplot(data = img_frida_s %>%
                    size = c),
                alpha = 0.7) +
   scale_color_manual(values = rev(mex.brewer("Frida", 
-                                         n = 8))) +
-  scale_size(range = c(0.1, 1.5)) +
-  coord_equal() +
-  theme_void() + 
-  theme(legend.position = "none")
-```
-
-## Aurora
-
-```{r dithering-frida-aurora, cache=TRUE}
-ggplot(data = img_frida_s %>%
-         filter(x >= 340 & x <= 440, y >= 620 & y <= 730), 
-       aes(x = x, 
-           y = y, 
-           color = gray)) +
-  geom_segment(aes(x = x1, y = y1,
-                   xend = xend, yend = yend,
-                   size = c),
-               alpha = 0.7) +
-  scale_color_manual(values = rev(mex.brewer("Aurora", 
                                          n = 8))) +
   scale_size(range = c(0.1, 1.5)) +
   coord_equal() +

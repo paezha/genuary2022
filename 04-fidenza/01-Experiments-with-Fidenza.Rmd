@@ -1,0 +1,992 @@
+---
+title: "Experiments with Fidenza"
+output: html_notebook
+---
+
+My basic code implementing the Fidenza algorithm is in the README.Rmd file in `04-fidenza`.
+
+Here I want to play with it a bit more.
+
+For example, I used the length of the path but could use the sequence of steps to modify some aesthetic.
+
+I will use the following packages:
+```{r load-packages, cache = FALSE, warning=FALSE, message=FALSE}
+library(ggforce)
+library(MexBrewer)
+library(tidyverse)
+```
+
+This are the basic steps:
+
+1. Generate a grid
+- Important parameters: size of the grid and valence of the coordinates (positive/negative)
+
+2. Generate a flow field on the grid
+- Important parameters: offset and formulas for the angles of the flow field
+
+3. Generate paths
+- Important parameters: resolution, number of iterations (length of path), number of paths 
+
+## Generate Grid
+
+```{r}
+# Size of grid
+n_min <- -17 
+n_max <- 18
+# Length of segment
+l <- sqrt(2) + 0.1
+
+df <- data.frame(expand.grid(x = seq(n_min, n_max, 1), y = seq(n_min, n_max, 1)))
+```
+
+Create and plot the flow field:
+```{r}
+# Offsets
+x_o <- -0
+y_o <- -0
+
+df <- df %>%
+  mutate(angle = ((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi,
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+Another possible parameter is using the valence of the coordinates to alter the angle:
+```{r}
+# Offsets
+x_o <- -0
+y_o <- -0
+
+df <- df %>%
+  mutate(angle = ((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi * sign(x * y), # add the signs
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+The valence could be used to change the direction of the displacement of the coordinate, instead of the angle:
+```{r}
+# Offsets
+x_o <- -0
+y_o <- -0
+
+df <- df %>%
+  mutate(angle = ((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi, # add the signs
+         xend = (x + sign(x) * l * cos(angle)),
+         yend = (y + sign(y) * l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+Another possible parameter is an initial rotation:
+```{r}
+# Offsets
+x_o <- -0
+y_o <- -0
+init_r <- 1/8
+
+df <- df %>%
+  mutate(angle = ((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi + init_r * pi, # add the signs
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+This one has an initial rotation and valence for the angle:
+```{r}
+# Offsets
+x_o <- -0
+y_o <- -0
+init_r <- 1/8
+
+df <- df %>%
+  mutate(angle = (((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi + init_r * pi) * sign(x * y), # add the signs
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+This one has an initial rotation and valence for the displacement:
+```{r}
+# Offsets
+x_o <- -0
+y_o <- -0
+init_r <- 1/8
+
+df <- df %>%
+  mutate(angle = ((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi + init_r * pi, # add the signs
+         xend = (x + sign(x) * l * cos(angle)),
+         yend = (y + sign(y) * l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+This one has an initial rotation, valence for the displacement _and_ valence for the angle:
+```{r}
+# Offsets
+x_o <- -0
+y_o <- -0
+init_r <- 1/8
+
+df <- df %>%
+  mutate(angle = (((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi + init_r * pi) * sign(x * y), # add the signs
+         xend = (x + sign(x) * l * cos(angle)),
+         yend = (y + sign(y) * l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+Make paths using the last flow field:
+```{r}
+# Set seed for reproducibility
+#set.seed(346363)
+
+# Parameters for creating the paths
+res <- 0.2 # Resolution for the path, smaller numbers create more points per path/smoother paths
+n_iter <- 20 # Number of iterations per path
+n_path <- 500 # Number of paths
+
+# Sample starting points
+st_point <- data.frame(x = runif(n_path, n_min, n_max),
+                       #x = 2,
+                       y = runif(n_path, n_min, n_max))
+
+# Initialize data frame with paths
+paths <- data.frame(x = numeric(), y = numeric(), step = numeric(), path = numeric())
+
+for(p in 1:n_path){
+  paths <- rbind(paths,
+                 data.frame(st_point[p,], step = 1, path = p))
+  next_x <- st_point[p, "x"]
+  next_y <- st_point[p, "y"]
+  for(i in 1:n_iter){
+    # With the next point, retrieve the angle of the closest point in the direction of the flow
+    angle <- df %>% 
+      mutate(d = sqrt((x - next_x)^2 + (y - next_y)^2)) %>%
+      filter(d == min(d)) %>%
+      pull(angle)
+    # Calculate the coordinates of the new next point and bind to paths
+    paths <- rbind(paths,
+                   data.frame(x = next_x + sign(next_x) * res * cos(angle), # Important to multiply by the sign of the next point
+                              y = next_y + sign(next_y) * res * sin(angle), # Important to multiply by the sign of the next point
+                              step = i + 1,
+                              path = p))
+    # Find the next starting point for the search
+    next_x <- slice_tail(paths) %>%
+      pull(x)
+    next_y <- slice_tail(paths) %>%
+      pull(y)
+    
+    # Check the boundary condition
+    boundary_condition <- next_x < n_min | next_x >= n_max |
+      next_y < n_min | next_y >= n_max
+    # If at the boundary set i to n_iter to complete the loop
+    if (boundary_condition) break
+  }
+}
+
+# Rename paths
+
+paths_ex3 <- paths
+```
+
+Plot paths:
+```{r paths-ex3}
+ggplot() + 
+  geom_line(data = paths_ex3,
+            aes(x = x,
+                y = y,
+                group = path),
+            color = "blue",
+            size = 1) +
+  geom_segment(data = df,
+               aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(data = df,
+             aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+Instead of lines use symbols:
+```{r}
+ggplot() + 
+  geom_point(data = paths_ex3 %>%
+               mutate(p_grid = (x * y)^2),
+             aes(x = x,
+                 y = y,
+                 group = path, 
+                 color =p_grid),
+             size = 1) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+Add length of path to table:
+```{r}
+paths_ex3 <- paths_ex3 %>% 
+  left_join(paths_ex3 %>%
+              group_by(path) %>%
+              summarize(l_path = n(), # length of path
+                        .groups = "drop"),
+            by = "path") 
+```
+
+Change the size of the symbols based on their position in the path:
+```{r}
+paths_ex3 <- paths_ex3 %>%
+  mutate(p_grid = (x * y)^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+ggplot(data = paths_ex3) + 
+  geom_circle(aes(x0 = x,
+                  y0 = y, 
+                  fill =p_grid,
+                  color = p_grid,
+                  r = size * res),
+              size = 1) +
+  geom_point(aes(x = x - 0.7 * size * res * pi/4,
+                 y = y + 0.7 * size * res * pi/4),
+             color = "white", 
+             size = 0.1) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+Make pretty with palette `Ronda`:
+```{r}
+col_palette <- mex.brewer("Ronda")
+
+paths_ex3 <- paths_ex3 %>%
+  mutate(p_grid = (x * y)^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+ggplot() + 
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = "black") +
+  geom_circle(data = paths_ex3,
+              aes(x0 = x,
+                  y0 = y,
+                  fill =p_grid,
+                  color = p_grid,
+                  r = 1.2 * size * res)) +
+  geom_point(data = paths_ex3,
+             aes(x = x - 1.2 * size * res * pi/4,
+                 y = y + 1.2 * size * res * pi/4),
+             color = col_palette[4],
+             size = 0.1) +
+  geom_circle(aes(x0 = 0,
+                  y0 = 0,
+                  r = 4),
+              color = col_palette[4],
+              fill = "black",
+              size = 2) +
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = NA,
+            color = col_palette[10]) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+Make pretty with palette `Revolucion`. The color depends on the position in the grid:
+```{r}
+col_palette <- mex.brewer("Revolucion")
+
+paths_ex3 <- paths_ex3 %>%
+  mutate(p_grid = (x * y)^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+ggplot() + 
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = "black") +
+  geom_circle(data = paths_ex3,
+              aes(x0 = x,
+                  y0 = y,
+                  fill =p_grid,
+                  color = p_grid,
+                  r = 1.2 * size * res)) +
+  geom_point(data = paths_ex3,
+             aes(x = x - 1.2 * size * res * pi/4,
+                 y = y + 1.2 * size * res * pi/4),
+             color = col_palette[4],
+             size = 0.1) +
+  geom_circle(aes(x0 = 0,
+                  y0 = 0,
+                  r = 4),
+              color = col_palette[4],
+              fill = "black",
+              size = 2) +
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = NA,
+            color = col_palette[10]) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+Make pretty with palette `Revolucion` but now change the rate of change of the colors:
+```{r}
+col_palette <- mex.brewer("Revolucion")
+
+paths_ex3 <- paths_ex3 %>%
+  mutate(p_grid = (x * y)^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+ggplot() + 
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = "black") +
+  geom_circle(data = paths_ex3,
+              aes(x0 = x,
+                  y0 = y,
+                  fill = p_grid^(1/3),
+                  color = p_grid^(1/3),
+                  r = 1.2 * size * res)) +
+  geom_point(data = paths_ex3,
+             aes(x = x - 1.2 * size * res * pi/4,
+                 y = y + 1.2 * size * res * pi/4),
+             color = col_palette[4],
+             size = 0.1) +
+  geom_segment(aes(x = n_min, xend = n_max, y = 0, yend = 0),
+             color = col_palette[4],
+             size = 3) +
+  geom_segment(aes(x = 0, xend = 0, y = n_min, yend = n_max),
+             color = col_palette[4],
+             size = 3) +
+  geom_circle(aes(x0 = 0,
+                  y0 = 0,
+                  r = 4),
+              color = col_palette[4],
+              fill = "black",
+              size = 3) +
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = NA,
+            color = col_palette[4], 
+            size = 3) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+
+```
+
+Make pretty with palette `Revolucion` but now the colors depend on the position on the path:
+```{r}
+col_palette <- mex.brewer("Revolucion")
+
+paths_ex3 <- paths_ex3 %>%
+  mutate(p_grid = (x * y)^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+ggplot() + 
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = "black") +
+  geom_circle(data = paths_ex3,
+              aes(x0 = x,
+                  y0 = y,
+                  fill = step - l_path/2,
+                  color = step - l_path/2,
+                  r = 1.2 * size * res)) +
+  geom_point(data = paths_ex3,
+             aes(x = x - 1.2 * size * res * pi/4,
+                 y = y + 1.2 * size * res * pi/4),
+             color = col_palette[4],
+             size = 0.1) +
+  geom_circle(aes(x0 = 0,
+                  y0 = 0,
+                  r = 4),
+              color = col_palette[4],
+              fill = "black",
+              size = 2) +
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = NA,
+            color = col_palette[10]) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+Change the resolution:
+```{r}
+# Set seed for reproducibility
+#set.seed(346363)
+
+# Parameters for creating the paths
+res <- 3 # Resolution for the path, smaller numbers create more points per path/smoother paths
+n_iter <- 20 # Number of iterations per path
+n_path <- 5000 # Number of paths
+
+# Sample starting points
+st_point <- data.frame(x = runif(n_path, n_min, n_max),
+                       #x = 2,
+                       y = runif(n_path, n_min, n_max))
+
+# Initialize data frame with paths
+paths <- data.frame(x = numeric(), y = numeric(), step = numeric(), path = numeric())
+
+for(p in 1:n_path){
+  paths <- rbind(paths,
+                 data.frame(st_point[p,], step = 1, path = p))
+  next_x <- st_point[p, "x"]
+  next_y <- st_point[p, "y"]
+  for(i in 1:n_iter){
+    # With the next point, retrieve the angle of the closest point in the direction of the flow
+    angle <- df %>% 
+      mutate(d = sqrt((x - next_x)^2 + (y - next_y)^2)) %>%
+      filter(d == min(d)) %>%
+      pull(angle)
+    # Calculate the coordinates of the new next point and bind to paths
+    paths <- rbind(paths,
+                   data.frame(x = next_x + sign(next_x) * res * cos(angle), # Important to multiply by the sign of the next point
+                              y = next_y + sign(next_y) * res * sin(angle), # Important to multiply by the sign of the next point
+                              step = i + 1,
+                              path = p))
+    # Find the next starting point for the search
+    next_x <- slice_tail(paths) %>%
+      pull(x)
+    next_y <- slice_tail(paths) %>%
+      pull(y)
+    
+    # Check the boundary condition
+    boundary_condition <- next_x < n_min | next_x >= n_max |
+      next_y < n_min | next_y >= n_max
+    # If at the boundary set i to n_iter to complete the loop
+    if (boundary_condition) break
+  }
+}
+
+# Rename paths
+
+paths_ex4 <- paths
+```
+
+Plot paths:
+```{r paths-ex4}
+# Add length of path to table:
+paths_ex4 <- paths_ex4 %>% 
+  left_join(paths_ex4 %>%
+              group_by(path) %>%
+              summarize(l_path = n(), # length of path
+                        .groups = "drop"),
+            by = "path") 
+
+ggplot() + 
+  geom_line(data = paths_ex4,
+            aes(x = x,
+                y = y,
+                group = path,
+                color = step - l_path/2),
+            size = 0.1) +
+  geom_segment(data = df,
+               aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(data = df,
+             aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+```{r}
+col_palette <- mex.brewer("Revolucion")
+
+paths_ex4 <- paths_ex4 %>%
+  mutate(p_grid = (x * y)^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+ggplot() + 
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = "black") +
+  geom_line(data = paths_ex4 %>%
+              filter(x > n_min & x < n_max, 
+                     y > n_min & y < n_max),
+              aes(x = x,
+                  y = y,
+                  group = path,
+                  color = p_grid^(1/3))) +
+  geom_segment(aes(x = n_min, xend = n_max, y = 0, yend = 0),
+             color = col_palette[10],
+             size = 3) +
+  geom_segment(aes(x = 0, xend = 0, y = n_min, yend = n_max),
+             color = col_palette[10],
+             size = 3) +
+  geom_circle(aes(x0 = 0,
+                  y0 = 0,
+                  r = 4),
+              color = col_palette[10],
+              fill = "black",
+              size = 3) +
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = NA,
+            color = col_palette[10], 
+            size = 3) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+
+
+## Experiments with angle and resolutions
+
+
+```{r}
+# Size of grid
+n_min <- -17 
+n_max <- 18
+# Length of segment
+l <- sqrt(2) + 0.1
+
+df <- data.frame(expand.grid(x = seq(n_min, n_max, 1), y = seq(n_min, n_max, 1)))
+```
+
+
+Create new flow field:
+```{r}
+# Offsets
+x_o <- -15
+y_o <- 5
+init_r <- 0
+d_angle <- 2
+
+# remove the valence
+df <- df %>%
+  mutate(angle = (((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * d_angle * pi + init_r * pi),# * sign(x * y), # add the signs
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+```
+
+Add obstacles:
+```{r}
+df <- df %>%
+  mutate(r1 = sqrt((x - 8)^2 + (y - 8)^2),
+         r2 = sqrt((x + 8)^2 + (y + 8)^2)) %>%
+  filter(r1 > 4,
+         r2 > 4)
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void()
+
+```
+
+Change the resolution:
+```{r}
+# Set seed for reproducibility
+#set.seed(346363)
+
+# Parameters for creating the paths
+res <- 3 # Resolution for the path, smaller numbers create more points per path/smoother paths
+n_iter <- 50 # Number of iterations per path
+n_path <- 5000 # Number of paths
+
+# Sample starting points
+st_point <- data.frame(x = runif(n_path, n_min, n_max),
+                       #x = 2,
+                       y = runif(n_path, n_min, n_max)) %>%
+  mutate(r1 = sqrt((x - 8)^2 + (y - 8)^2),
+         r2 = sqrt((x + 8)^2 + (y + 8)^2)) %>%
+  filter(r1 > 4,
+         r2 > 4) %>%
+  select(-starts_with("r"))
+
+# Update number of paths to account for the starting poins eliminated due to obstacles
+n_path <- nrow(st_point)
+
+# Initialize data frame with paths
+paths <- data.frame(x = numeric(), y = numeric(), step = numeric(), path = numeric())
+
+for(p in 1:n_path){
+  paths <- rbind(paths,
+                 data.frame(st_point[p,], step = 1, path = p))
+  next_x <- st_point[p, "x"]
+  next_y <- st_point[p, "y"]
+  for(i in 1:n_iter){
+    # With the next point, retrieve the angle of the closest point in the direction of the flow
+    angle <- df %>% 
+      mutate(d = sqrt((x - next_x)^2 + (y - next_y)^2)) %>%
+      filter(d == min(d))
+    min_d <- angle %>% pull(d)
+    angle <- angle %>% pull(angle)
+    # Calculate the coordinates of the new next point and bind to paths
+    paths <- rbind(paths,
+                   data.frame(x = next_x + res * cos(angle), # Removed the valence
+                              y = next_y + res * sin(angle), # Removed the valence
+                              step = i + 1,
+                              path = p))
+    # Find the next starting point for the search
+    next_x <- slice_tail(paths) %>%
+      pull(x)
+    next_y <- slice_tail(paths) %>%
+      pull(y)
+    
+    # Check the boundary condition
+    boundary_condition <- next_x < n_min | next_x >= n_max |
+      next_y < n_min | next_y >= n_max | min_d > sqrt(2) + 0.1
+    # If at the boundary set i to n_iter to complete the loop
+    if (boundary_condition) break
+  }
+}
+
+# Rename paths
+
+paths_ex5 <- paths
+```
+
+Plot paths:
+```{r paths-ex5}
+# Add length of path to table:
+paths_ex5 <- paths_ex5 %>% 
+  left_join(paths_ex5 %>%
+              group_by(path) %>%
+              summarize(l_path = n(), # length of path
+                        .groups = "drop"),
+            by = "path") 
+
+ggplot() + 
+  geom_path(data = paths_ex5,
+            aes(x = x,
+                y = y,
+                group = path),
+            color = "blue",
+            size = 1) +
+  geom_segment(data = df,
+               aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend)) +
+  geom_point(data = df,
+             aes(x = xend, 
+                 y =yend)) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+Obstacle avoidance not working great, wonder why.
+
+Prettify:
+```{r}
+col_palette <- mex.brewer("Revolucion")
+
+paths_ex5 <- paths_ex5 %>%
+  mutate(p_grid = ((x - n_min) * (y - n_min ))^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+plot1 <- ggplot() + 
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = "black") +
+  geom_path(data = paths_ex5 %>%
+              filter(x > n_min & x < n_max,
+                     y > n_min & y < n_max),
+              aes(x = x,
+                  y = y,
+                  group = path,
+                  color = p_grid^(1/3))) +
+  geom_circle(aes(x0 = -8,
+                  y0 = -8,
+                  r = 4),
+              color = col_palette[4],
+              fill = col_palette[8],
+              size = 3) +
+   geom_circle(aes(x0 = 8,
+                   y0 = 8,
+                   r = 4),
+               color = col_palette[4],
+               fill = col_palette[1],
+               size = 3) +
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = NA,
+            color = col_palette[8], 
+            size = 3) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+
+plot1
+```
+
+```{r}
+col_palette <- mex.brewer("Atentado")
+
+paths_ex5 <- paths_ex5 %>%
+  mutate(p_grid = ((x - n_min) * (y - n_min ))^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+plot2 <- ggplot() + 
+  geom_rect(aes(xmin = -n_min, 
+                xmax = -n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = "black") +
+  geom_path(data = paths_ex5 %>%
+              filter(x > n_min & x < n_max,
+                     y > n_min & y < n_max),
+              aes(x = -x,
+                  y = y,
+                  group = path,
+                  color = p_grid^(1/3))) +
+  geom_circle(aes(x0 = 8,
+                  y0 = -8,
+                  r = 4),
+              color = col_palette[4],
+              fill = col_palette[8],
+              size = 3) +
+   geom_circle(aes(x0 = -8,
+                   y0 = 8,
+                   r = 4),
+               color = col_palette[4],
+               fill = col_palette[1],
+               size = 3) +
+  geom_rect(aes(xmin = -n_min, 
+                xmax = -n_max, 
+                ymin = n_min, 
+                ymax = n_max),
+            fill = NA,
+            color = col_palette[8], 
+            size = 3) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+
+plot2
+```
+
+```{r}
+col_palette <- mex.brewer("Alacena")
+
+paths_ex5 <- paths_ex5 %>%
+  mutate(p_grid = ((x - n_min) * (y - n_min ))^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+plot3 <- ggplot() + 
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = -n_min, 
+                ymax = -n_max),
+            fill = "black") +
+  geom_path(data = paths_ex5 %>%
+              filter(x > n_min & x < n_max,
+                     y > n_min & y < n_max),
+              aes(x = x,
+                  y = -y,
+                  group = path,
+                  color = p_grid^(1/3))) +
+  geom_circle(aes(x0 = 8,
+                  y0 = -8,
+                  r = 4),
+              color = col_palette[4],
+              fill = col_palette[8],
+              size = 3) +
+   geom_circle(aes(x0 = -8,
+                   y0 = 8,
+                   r = 4),
+               color = col_palette[4],
+               fill = col_palette[1],
+               size = 3) +
+  geom_rect(aes(xmin = n_min, 
+                xmax = n_max, 
+                ymin = -n_min, 
+                ymax = -n_max),
+            fill = NA,
+            color = col_palette[8], 
+            size = 3) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+
+plot3
+```
+
+
+```{r}
+col_palette <- mex.brewer("Ronda")
+
+paths_ex5 <- paths_ex5 %>%
+  mutate(p_grid = ((x - n_min) * (y - n_min ))^2,
+         size = 1 / (abs(step - l_path/2) + 1))
+
+plot4 <- ggplot() + 
+  geom_rect(aes(xmin = -n_min, 
+                xmax = -n_max, 
+                ymin = -n_min, 
+                ymax = -n_max),
+            fill = "black") +
+  geom_path(data = paths_ex5 %>%
+              filter(x > n_min & x < n_max,
+                     y > n_min & y < n_max),
+              aes(x = -x,
+                  y = -y,
+                  group = path,
+                  color = p_grid^(1/3))) +
+  geom_circle(aes(x0 = -8,
+                  y0 = -8,
+                  r = 4),
+              color = col_palette[4],
+              fill = col_palette[8],
+              size = 3) +
+   geom_circle(aes(x0 = 8,
+                   y0 = 8,
+                   r = 4),
+               color = col_palette[4],
+               fill = col_palette[1],
+               size = 3) +
+  geom_rect(aes(xmin = -n_min, 
+                xmax = -n_max, 
+                ymin = -n_min, 
+                ymax = -n_max),
+            fill = NA,
+            color = col_palette[8], 
+            size = 3) +
+  scale_color_gradientn(colors = col_palette) +
+  coord_equal() +
+  theme_void() + 
+  theme(legend.position = "none")
+
+plot4
+```
+
+```{r fig.height=10}
+library(patchwork)
+
+(plot1 + plot2) / (plot3 + plot4)
+```
+

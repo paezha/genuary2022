@@ -47,3 +47,9 @@ Detail:
 Bonus José Guadalupe Posada!
 
 ![](03-space/README_files/figure-gfm/space-posada-tierra-1.png)
+
+## Day 3: The next next Fidenza
+
+Learning about flow fields with this one.
+
+![](04-fidenza/README_files/figure-gfm/paths-ex4-revolucion-1.png)

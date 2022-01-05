@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The third prompt for [genuary](https://genuary.art) 2022 is "The next next Fidenza". Fidenza is a flow algorithm. The next next Fidenza is beyond my skills at the moment, so I will try just a plain Fidenza.
+The fourth prompt for [genuary](https://genuary.art) 2022 is "The next next Fidenza". Fidenza is a flow algorithm. The next next Fidenza is beyond my skills at the moment, so I will try just a plain Fidenza.
 
 I will use the following packages:
 ```{r load-packages, cache = FALSE, warning=FALSE, message=FALSE}

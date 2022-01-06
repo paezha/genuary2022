@@ -40,6 +40,7 @@ img <- image_read("source-frida-kahlo.jpg") %>%
   image_trim()
 img
 ```
+
 Get dimensions of image:
 ```{r}
 img_w <- image_info(img)$width

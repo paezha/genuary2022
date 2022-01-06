@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-This repository is for my first [genuary](), a month of generative art. A great opportunity to learn something new coding-wise, while indulging in some artsy activities. I also want to test my [{MexBrewer}](https://paezha.github.io/MexBrewer/) color palettes.
+This repository is for my first [genuary](https://genuary.art/), a month of generative art. A great opportunity to learn something new coding-wise, while indulging in some artsy activities. I also want to test my [{MexBrewer}](https://paezha.github.io/MexBrewer/) color palettes.
 
 ## Day 1: Draw 10,000 of something
 
@@ -63,3 +63,11 @@ Learning about flow fields with this one.
 I decided to try something minimalist exploiting an effect that I accidentally discovered while learning the Fidenza algorithm.
 
 ![](05-break-a-square/README_files/figure-gfm/break-square-atentado-1.png)
+
+## Day 6: Trading styles
+
+Not really a trade, more like shamelessly copying some code from [Georgios Karamanis](https://github.com/gkaramanis/aRtist/tree/main/genuary) whose generative art I like (plus, he is generous enough to make his code [public](https://github.com/gkaramanis/aRtist/tree/main/genuary/2021/2021-3)).
+
+This is Frida using the `Frida` palette from [{MexBrewer}](https://paezha.github.io/MexBrewer/).
+
+![](06-trade-styles/frida-frida.png)

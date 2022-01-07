@@ -71,3 +71,21 @@ Not really a trade, more like shamelessly copying some code from [Georgios Karam
 This is Frida using the `Frida` palette from [{MexBrewer}](https://paezha.github.io/MexBrewer/).
 
 ![](06-trade-styles/frida-frida.png)
+
+## Day 7: Sol LeWitt Wall Painting
+
+I did not know Sol LeWitt or his art. He did not believe that the hand that painted was the real artist, but the mind that conceived the painting. He gave instructions and hired drafters to put pencil/brush/whatever to the wall. So this was generative art in analog format: LeWitt gave the algorithm (that was the art) and someone did the painting. [These](https://observer.com/2012/10/here-are-the-instructions-for-sol-lewitts-1971-wall-drawing-for-the-school-of-the-mfa-boston/) are an example of the kind of instructions he used:
+
+> "On a wall surface, any  
+> continuous stretch of wall,  
+> using a hard pencil, place  
+> fifty points at random.  
+> The points should be evenly  
+> distributed over the area  
+> of the wall. All of the  
+> points should be connected  
+> by straight lines."
+
+For this day I took a number of random points from a planar network and then connected them using, not straight lines, but shortest paths on the network.
+
+![](07-sol-lewitt-wall-drawing/slw_animation.gif)

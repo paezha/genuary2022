@@ -105,6 +105,36 @@ ggplot(img_df) +
 ggsave("frida-frida.png", dpi = 320, width = 7, height = 7 / img_ratio)
 ```
 
+## Frida 2
+
+Colors, fill and background,, use palette `Frida`:
+```{r}
+col_palette <- mex.brewer("Frida")
+col_fill <- col_palette[3]
+```
+
+Render:
+```{r}
+ggplot(img_df) +
+  geom_rect(aes(xmin = 0 + 2, xmax = max(x),
+                ymin = 0 - 2, ymax = max(y)),
+            fill = col_fill) +
+  geom_ridgeline_gradient(aes(x, 
+                              y, 
+                              height = b/50,
+                              group = y, 
+                              fill = b), 
+                          color = "white",
+                          size = 0.35) +
+  scale_y_reverse() +
+  scale_fill_gradientn(colours = rev(col_palette)) +
+  coord_equal() +
+  theme_void() +
+  theme(legend.position = "none")  
+
+ggsave("frida-frida-2.png", dpi = 320, width = 7, height = 7 / img_ratio)
+```
+
 ## Aurora
 
 Colors, fill and background,, use palette `Aurora`:

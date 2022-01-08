@@ -52,7 +52,9 @@ col_palette <- mex.brewer("Atentado")
 c_atentado <- list()
 counter <- 0
 
-for(i in 1:5){
+col_1 <- c(5, 4, 3, 2, 1)
+
+for(i in col_1){
   for(j in 6:10){
     counter <- counter + 1
     c_atentado[[counter]] <- ggplot(data = df) +
@@ -80,7 +82,9 @@ col_palette <- mex.brewer("Alacena")
 c_alacena <- list()
 counter <- 0
 
-for(i in 1:5){
+col_1 <- c(5, 4, 3, 2, 1)
+
+for(i in col_1){
   for(j in 6:10){
     counter <- counter + 1
     c_alacena[[counter]] <- ggplot(data = df) +
@@ -108,7 +112,9 @@ col_palette <- mex.brewer("Revolucion")
 c_revolucion <- list()
 counter <- 0
 
-for(i in 1:5){
+col_1 <- c(5, 4, 3, 2, 1)
+
+for(i in col_1){
   for(j in 6:10){
     counter <- counter + 1
     c_revolucion[[counter]] <- ggplot(data = df) +
@@ -136,7 +142,9 @@ col_palette <- mex.brewer("Ronda")
 c_ronda <- list()
 counter <- 0
 
-for(i in 1:5){
+col_1 <- c(5, 4, 3, 2, 1)
+
+for(i in col_1){
   for(j in 6:10){
     counter <- counter + 1
     c_ronda[[counter]] <- ggplot(data = df) +

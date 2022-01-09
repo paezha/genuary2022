@@ -105,13 +105,23 @@ network.
 ## Day 8: Single curve only
 
 A ![\\Gamma](https://latex.codecogs.com/png.latex?%5CGamma "\Gamma")
-function calibrated by [Anastasia Soukhov]() using data from the Greater
-Toronto and Hamilton Area for commute to work.
+function calibrated by [Anastasia
+Soukhov](https://soukhova.github.io/AccessPack/) using data from the
+Greater Toronto and Hamilton Area for commute to work. Color palettes
+from [{MexBrewer}](https://paezha.github.io/MexBrewer/).
+
+### Ronda
 
 ![](08-single-curve-only/single-curve-ronda.png)
 
+### Alacena
+
 ![](08-single-curve-only/single-curve-alacena.png)
 
+### Revolucion
+
 ![](08-single-curve-only/single-curve-revolucion.png)
+
+### Alacena
 
 ![](08-single-curve-only/single-curve-atentado.png)

@@ -14,13 +14,24 @@ Soukhov](https://soukhova.github.io/AccessPack/).
 
 The gamma distribution was has the general form of:
 
-$$ 
+![ 
 f(x, \\alpha, \\beta) = \\frac {x^{\\alpha-1}e^{-\\frac{x}{\\beta}}}{ \\beta^{\\alpha}\\Gamma(\\alpha)} \\quad \\text{for } 0 \\leq x \\leq \\infty
-$$
-where the estimated ‘shape’ is *α*, the estimated ‘rate’ is *β*, and
-*Γ*(*α*) is defined as:
+](https://latex.codecogs.com/png.latex?%20%0Af%28x%2C%20%5Calpha%2C%20%5Cbeta%29%20%3D%20%5Cfrac%20%7Bx%5E%7B%5Calpha-1%7De%5E%7B-%5Cfrac%7Bx%7D%7B%5Cbeta%7D%7D%7D%7B%20%5Cbeta%5E%7B%5Calpha%7D%5CGamma%28%5Calpha%29%7D%20%5Cquad%20%5Ctext%7Bfor%20%7D%200%20%5Cleq%20x%20%5Cleq%20%5Cinfty%0A " 
+f(x, \alpha, \beta) = \frac {x^{\alpha-1}e^{-\frac{x}{\beta}}}{ \beta^{\alpha}\Gamma(\alpha)} \quad \text{for } 0 \leq x \leq \infty
+")
 
-*Γ*(*α*) = ∫<sub>0</sub><sup>∞</sup>*x*<sup>*α* − 1</sup>*e*<sup>−*x*</sup> *d**x*
+where the estimated ‘shape’ is
+![\\alpha](https://latex.codecogs.com/png.latex?%5Calpha "\alpha"), the
+estimated ‘rate’ is
+![\\beta](https://latex.codecogs.com/png.latex?%5Cbeta "\beta"), and
+![\\Gamma(\\alpha)](https://latex.codecogs.com/png.latex?%5CGamma%28%5Calpha%29 "\Gamma(\alpha)")
+is defined as:
+
+![
+\\Gamma(\\alpha) =  \\int\_{0}^{\\infty} x^{\\alpha-1}e^{-x} \\,dx
+](https://latex.codecogs.com/png.latex?%0A%5CGamma%28%5Calpha%29%20%3D%20%20%5Cint_%7B0%7D%5E%7B%5Cinfty%7D%20x%5E%7B%5Calpha-1%7De%5E%7B-x%7D%20%5C%2Cdx%0A "
+\Gamma(\alpha) =  \int_{0}^{\infty} x^{\alpha-1}e^{-x} \,dx
+")
 
 I will use the following packages:
 

@@ -101,3 +101,17 @@ then connected them using, not straight lines, but shortest paths on the
 network.
 
 ![](07-sol-lewitt-wall-drawing/slw_animation.gif)
+
+## Day 8: Single curve only
+
+A ![\\Gamma](https://latex.codecogs.com/png.latex?%5CGamma "\Gamma")
+function calibrated by [Anastasia Soukhov]() using data from the Greater
+Toronto and Hamilton Area for commute to work.
+
+![](08-single-curve-only/single-curve-ronda.png)
+
+![](08-single-curve-only/single-curve-alacena.png)
+
+![](08-single-curve-only/single-curve-revolucion.png)
+
+![](08-single-curve-only/single-curve-atentado.png)

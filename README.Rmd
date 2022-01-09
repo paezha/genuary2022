@@ -1,5 +1,7 @@
 ---
-output: github_document
+output:
+  github_document:
+    pandoc_args: --webtex
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -89,3 +91,16 @@ I did not know Sol LeWitt or his art. He did not believe that the hand that pain
 For this day I took a number of random points from a planar network and then connected them using, not straight lines, but shortest paths on the network.
 
 ![](07-sol-lewitt-wall-drawing/slw_animation.gif)
+
+## Day 8: Single curve only
+
+A $\Gamma$ function calibrated by [Anastasia Soukhov]() using data from the Greater Toronto and Hamilton Area for commute to work. 
+
+![](08-single-curve-only/single-curve-ronda.png)
+
+![](08-single-curve-only/single-curve-alacena.png)
+
+![](08-single-curve-only/single-curve-revolucion.png)
+
+
+![](08-single-curve-only/single-curve-atentado.png)

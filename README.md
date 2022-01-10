@@ -125,3 +125,23 @@ from [{MexBrewer}](https://paezha.github.io/MexBrewer/).
 ### Alacena
 
 ![](08-single-curve-only/single-curve-atentado.png)
+
+## Day 9: Architecture
+
+A cartoonish skyline.
+
+### Ronda
+
+![](09-architecture/skyline-ronda.png)
+
+### Atentado
+
+![](09-architecture/skyline-atentado.png)
+
+### Revolucion
+
+![](09-architecture/skyline-revolucion.png)
+
+### Alacena
+
+![](09-architecture/skyline-alacena.png)

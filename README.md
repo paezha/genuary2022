@@ -145,3 +145,16 @@ A cartoonish skyline.
 ### Alacena
 
 ![](09-architecture/skyline-alacena.png)
+
+## Day 12: Circle packing
+
+I took some towers from architecture on Day 9 and packed them with
+circles.
+
+### Ronda
+
+![](12-circle-packing/circle-packing-ronda.png)
+
+### Alacena
+
+![](12-circle-packing/circle-packing-alacena.png)

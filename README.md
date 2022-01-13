@@ -158,3 +158,9 @@ circles.
 ### Alacena
 
 ![](12-circle-packing/circle-packing-alacena.png)
+
+## Day 13: 800x80
+
+Just an excuse to pack more stuff.
+
+![](13-800x80/800x80-2.png)

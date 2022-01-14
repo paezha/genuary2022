@@ -237,7 +237,7 @@ for(i in 1:nrow(df)){
                                         max = 3),
               s = runif(1, 
                         min = 0.1, 
-                        max = 0.8)s)
+                        max = 0.8))
   skyline <- rbind(skyline, 
                    data.frame(t1[[1]], group = i))
   

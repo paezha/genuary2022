@@ -955,3 +955,143 @@ ggplot() +
 ```
 
 Neat!
+
+## Improved process for generating towers
+
+Generate grid for placing towers:
+```{r}
+n_cols <- 20
+n_rows <- 5
+
+# Grid - odd rows
+df_o <- data.frame(expand.grid(x = seq(1, 
+                                       n_cols,
+                                       by = 2), 
+                               y = seq(1, 
+                                       n_rows, 
+                                       by = 2 * tan(pi/6))), 
+                   r = "odd")
+
+# Grid - even rows
+df_e <- data.frame(expand.grid(x = seq(2, 
+                                       n_cols + 1, 
+                                       by = 2), 
+                               y = seq(1 + tan(pi/6),
+                                       n_rows, 
+                                       by = 2 * tan(pi/6))),
+                   r = "even")
+
+# Bind
+df <- rbind(df_o, df_e)
+```
+
+Sample from the grid:
+```{r}
+df <- df %>%
+  slice_sample(prop = 0.5)
+```
+
+Create the towers in such an order that the groups go from left to right and from bottom to top:
+```{r}
+skyline <- data.frame()
+all_windows <- data.frame()
+
+df <- df %>%
+  group_by(y) %>%
+  arrange(desc(y)) %>%
+  ungroup() %>%
+  as.data.frame()
+
+for(i in 1:nrow(df)){
+  t1 <- tower(df[i, 1], 
+              df[i, 2], 
+              l = 0.25 * (-1/3 * (df[i, 1] - n_cols/2)^2 + 40) + runif(1,
+                                                                     min = 0, 
+                                                                     max = 10),
+              s = runif(1, 
+                        min = 0.1, 
+                        max = 0.8)
+              )
+  skyline <- rbind(skyline, 
+                   data.frame(t1[[1]], group = i))
+  
+  all_windows <- rbind(all_windows, 
+                   data.frame(t1[[2]], group = i))
+}
+
+#Sort by descending group:
+skyline <- skyline %>%
+  #arrange(desc(group)) %>%
+  st_as_sf()
+
+all_windows <- all_windows %>%
+  #arrange(desc(group)) %>%
+  st_as_sf()
+```
+
+Clip in the same order:
+```{r warning=FALSE}
+# Copy original skyline
+skyline2 <- skyline
+all_windows2 <- all_windows
+
+# Number of towers
+max_groups <- max(skyline2$group)
+
+# Initialize table for clipped towers
+clipped_towers <- data.frame()
+
+# Initialize table for clipped towers
+clipped_windows <- data.frame()
+
+for(i in 1:max_groups - 1){
+  
+  # Get current tower
+  current_towers <- skyline2 %>%
+    filter(group == i)
+
+  # Get windows of current tower
+  current_windows <- all_windows2 %>%
+    filter(group == i)
+
+  # Remove current tower from skyline
+  skyline2 <- skyline2 %>% 
+    filter(group != i)
+
+  # Remove windows of current tower from all windows
+  all_windows2 <- all_windows2 %>% 
+    filter(group != i)
+    
+  # Clip current tower using rest of skyline
+  clipped_towers <- rbind(clipped_towers,
+                         current_towers %>%
+                           st_difference(skyline2 %>% 
+                                           st_union()))
+  
+  # Clip windows of current tower using rest of skyline
+  clipped_windows <- rbind(clipped_windows,
+                         current_windows %>%
+                           st_difference(skyline2 %>% 
+                                           st_union()))
+}
+
+# Add the last tower which was not clipped
+clipped_towers <- rbind(clipped_towers,
+                       skyline2)
+
+clipped_windows <- rbind(clipped_windows,
+                       all_windows2)
+```
+
+Plot clipped towers:
+```{r}
+ggplot() + 
+    geom_sf(data = clipped_towers, 
+                     aes(fill = factor(c)),
+                   color = "white") +
+    geom_sf(data = clipped_windows,
+            fill = "white",
+            color = NA)
+```
+
+

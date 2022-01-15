@@ -1,0 +1,13 @@
+ggplot2
+ggforce
+lwgeom
+MexBrewer
+sf
+tidyverse
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats

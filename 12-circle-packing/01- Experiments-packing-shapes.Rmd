@@ -2,16 +2,737 @@
 title: "More experiments packing shapes"
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
-```{r}
-plot(cars)
+```{r load-packages, cache = FALSE, warning=FALSE, message=FALSE}
+library(ggforce)
+library(ggimage)
+library(lwgeom)
+library(MexBrewer)
+library(sf)
+library(tidyverse)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+Create a polygon of the stipulated dimensions:
+```{r}
+container <- matrix(c(0, 0, 
+                       0, 12, 
+                       8, 12,  
+                       8, 0,
+                       0, 0),
+                     ncol = 2,
+                     byrow = TRUE)
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+# Convert coordinates to polygons and then to simple features
+container <- data.frame(id = 1,
+                        r = NA,
+                 geometry = st_polygon(list(container)) %>% 
+                   st_sfc()) %>% 
+  st_as_sf() %>% 
+  st_cast(to = "MULTILINESTRING")
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+Plot this initial container:
+```{r}
+ggplot() + 
+  geom_sf(data = container)
+```
+
+The inputs for the packing algorithm are:
+
+- An sf object with multilinestring.
+- Parameters for generating the circles:
+    - Maximum number of circles
+    - Maximum radius for a circle
+    - Minimum radius for a circle
+
+Function for packing:
+```{r}
+st_circle_packer <- function(p, max_circles = 100, max_radius = 1, min_radius = 0.1){
+  
+  # Initialize the table with circles
+  circles <- data.frame()
+  
+  # Convert lines to polygons
+  p_polygons <- p %>%
+    st_cast(to = "POLYGON")
+  
+  # Create initial set of points for potential circles in the space of the bounding box of the polygons
+  region <- st_bbox(p)
+  c_points <- data.frame(x = runif(n = max_circles,
+                                   min = region[1],
+                                   max = region[3]),
+                         y = runif(n = max_circles,
+                                   min = region[2],
+                                   max = region[4]))
+  
+  # Convert the points to simple features and add a unique point identifier (PID)
+  c_points <- c_points %>%
+    st_as_sf(coords = c("x", "y")) %>%
+    mutate(PID = 1:n())
+  
+  # Find any points that fall outside of a polygon and remove
+  c_points <- c_points %>%
+    st_join(p_polygons) %>%
+    drop_na(id)
+  
+  # Initialize stopping criterion
+  stopping_criterion <- TRUE
+  
+  while(stopping_criterion){
+    # Sample one point from each polygon: these points are candidates for circles
+    circle_candidates <- c_points %>% 
+      group_by(id) %>%
+      slice_sample(n =1) %>%
+      ungroup()
+    
+    # Remove the points sampled from the table of points so that they are not considered again in the future
+    c_points <- c_points %>%
+      anti_join(circle_candidates %>%
+                  st_drop_geometry() %>%
+                  select(PID),
+                by = "PID")
+    
+    # Find the distance of the candidate points to the boundaries of the polygons if no circles exist yet
+    if(nrow(circles) == 0){
+      circle_candidates$r <- circle_candidates %>%
+        st_distance(p) %>% 
+        data.frame() %>%
+        apply(1, min)
+    }# Find the distance of the candidate points to the boundaries of the polygons and circles if they exist
+    else{
+      circle_candidates$r <- circle_candidates %>%
+        st_distance(rbind(p, 
+                          circles %>%
+                            select(-PID))) %>% 
+        data.frame() %>%
+        apply(1, min)
+    }
+    
+    # Filter candidates with a radius greater than the minimum
+    circle_candidates <- circle_candidates %>% 
+      filter(r >= min_radius)
+    
+    # Make sure that the radius does not exceed the maximum
+    circle_candidates <- circle_candidates %>%
+      mutate(r = ifelse(r >= max_radius, max_radius, r))
+    
+    # If there are candidates points with a radius above the tolerance then create circles
+    if(nrow(circle_candidates) > 0){
+      # Use the points and buffers to create circles that are added to the existing table of circles
+      circles <- rbind(circles,
+                       circle_candidates %>%
+                         st_buffer(dist = circle_candidates$r))
+      
+      # Clear points that are now _inside_ a circle from the candidates (the radius will _not_ be NA)
+      c_points <- c_points %>%
+        select(-c(r)) %>% 
+        st_join(circles %>%
+                  select(r)) %>%
+        filter(is.na(r))
+    }
+    stopping_criterion <- nrow(c_points) > 0
+  }
+  return(circles)
+}
+```
+
+Create a first pack:
+```{r}
+circles_1 <- container %>%
+  st_circle_packer(max_circles = 3000, 
+                   max_radius = 4,
+                   min_radius = 0.1)
+```
+
+Plot:
+```{r}
+ggplot() + 
+  geom_sf(data = container, 
+          aes(fill = factor(id))) +
+  geom_sf(data = circles_1,
+          fill = NA)
+```
+
+Extract centroids and radii of the circles to plot as triangles:
+```{r}
+triangles <- data.frame(circles_1 %>% 
+                            st_drop_geometry(),
+                          st_centroid(circles_1) %>% 
+                            st_coordinates())
+triangles_1 <- triangles %>%
+  filter(r >= 0.5)
+
+triangles_2 <- triangles %>%
+  filter(r < 0.5)
+```
+
+Use {ggforce} to plot as triangles
+```{r}
+ggplot() +
+  geom_regon(data = triangles_2,
+             aes(x0 = X,
+                 y0 = Y, 
+                 sides = 3,
+                 angle = 45, 
+                 r = r)) +
+  geom_sf(data = circles_1 %>%
+            filter(r > 0.5),
+          fill = "white") + 
+  theme_void()
+
+#ggsave(filename = "800x80-1.png")
+```
+Plot all triangles:
+```{r}
+ggplot() +
+  geom_regon(data = triangles_1,
+             aes(x0 = X,
+                 y0 = Y, 
+                 sides = 3,
+                 angle = 45, 
+                 r = r)) +
+  geom_regon(data = triangles_2,
+             aes(x0 = X,
+                 y0 = Y, 
+                 sides = 3,
+                 angle = 0, 
+                 r = r),
+             fill = "white",
+             color = "black") +
+  coord_equal() +
+  theme_void()
+```
+
+Next I'd like to pack circles in the bigger circles of the first pack and turn them into triangles. First convert to lines and select those with a radius greater than 10:
+```{r}
+circles_lines <- circles_1 %>%
+  st_cast(to = "MULTILINESTRING") %>%
+  filter(r >= 0.5)
+```
+
+Plot:
+```{r}
+ggplot() + 
+  geom_sf(data = container, 
+          aes(fill = factor(id))) +
+  geom_sf(data = circles_lines,
+          fill = NA)
+```
+
+Now pack those circles:
+```{r}
+triangles_level2 <- circles_lines %>% 
+  transmute(id = 1:nrow(circles_lines), # Reset ids
+            r = NA) %>% # set radius to NA
+  st_circle_packer(max_circles = 3000, 
+                   max_radius = 1,
+                   min_radius = 0.01)
+```
+
+Prepare for plotting as triangles:
+```{r}
+triangles_level2 <- data.frame(triangles_level2 %>% 
+                            st_drop_geometry(),
+                          st_centroid(triangles_level2) %>% 
+                            st_coordinates())
+```
+
+Plot
+```{r}
+ggplot() +
+  geom_regon(data = triangles_level2,
+             aes(x0 = X,
+                 y0 = Y, 
+                 sides = 3,
+                 angle = 45, 
+                 r = r),
+             fill = "white",
+             color = "red") +
+  geom_regon(data = triangles_2,
+             aes(x0 = X,
+                 y0 = Y, 
+                 sides = 3,
+                 angle = 0, 
+                 r = r),
+             fill = "black",
+             color = "black") +
+  coord_equal() +
+  theme_void()
+```
+
+```{r}
+set.seed(2017-02-21)
+d <- data.frame(x = rnorm(10),
+                y = rnorm(10),
+                image = c("cherry-blossom-icon.png"),
+                size = runif(10, 0.05, 0.25))
+
+ggplot(d, aes(x, y)) + geom_image(aes(image=image, size = I(size))) +coord_equal()
+```
+
+```{r}
+col_palette <- MetBrewer::met.brewer("Hokusai1")
+ggplot() +
+  geom_sf(data = container %>%
+            st_cast(to = "POLYGON"),
+          color = NA,
+          fill = col_palette[4]) +
+  geom_regon(data = triangles_2 %>%
+               mutate(c = factor(sample.int(7, 
+                                            n(), 
+                                            replace = TRUE)), 
+                      ordered = TRUE),
+             aes(x0 = X,
+                 y0 = Y, 
+                 sides = 3,
+                 angle = 45, 
+                 r = r,
+                 fill = c),
+             color = "white") +
+  geom_image(data = triangles_1  %>%
+            mutate(image = "cherry-blossom-icon-3.png"),
+             aes(image = image,
+                 x = X,
+                 y = Y, 
+                 size = I(r) * 0.15)) +
+  scale_fill_manual(values = col_palette) +
+  #coord_equal() +
+  theme_void()
+
+#ggsave(filename = "800x80-1.png")
+```
+
+I got some carps and removed the background with https://tools.picsart.com/background-removal/ or https://www.remove.bg/upload.
+
+```{r}
+col_palette <- MetBrewer::met.brewer("Hokusai2")
+
+ggplot() +
+  geom_sf(data = container %>%
+            st_cast(to = "POLYGON"),
+          color = NA,
+          fill = col_palette[6]) +
+  geom_circle(data = triangles_2 %>%
+               mutate(c = factor(sample.int(6, 
+                                            n(), 
+                                            replace = TRUE)), 
+                      ordered = TRUE),
+             aes(x0 = X,
+                 y0 = Y, 
+                 r = r,
+                 fill = c),
+             color = col_palette[1]) +
+  geom_image(data = triangles_1  %>%
+            mutate(image = sample(c("carp-pair-1.png",
+                                    "carp-pair-2.png"),
+                                  size = n(),
+                                  replace = TRUE)),
+             aes(image = image,
+                 x = X,
+                 y = Y, 
+                 size = I(r) * 0.10)) +
+  scale_fill_manual(values = col_palette) +
+  #coord_equal() +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave(filename = "packing-carps-hokusai-2.png", 
+       width = 7, 
+       height = 7, 
+       units = "in")
+```
+
+Different color palette:
+```{r}
+col_palette <- MetBrewer::met.brewer("Hokusai1")
+
+ggplot() +
+  geom_sf(data = container %>%
+            st_cast(to = "POLYGON"),
+          color = NA,
+          fill = col_palette[7]) +
+  geom_circle(data = triangles_2 %>%
+               mutate(c = factor(sample.int(7, 
+                                            n(), 
+                                            replace = TRUE)), 
+                      ordered = TRUE),
+             aes(x0 = X,
+                 y0 = Y, 
+                 r = r,
+                 fill = c),
+             color = col_palette[1]) +
+  geom_image(data = triangles_1  %>%
+            mutate(image = sample(c("carp-pair-1.png",
+                                    "carp-pair-2.png"),
+                                  size = n(),
+                                  replace = TRUE)),
+             aes(image = image,
+                 x = X,
+                 y = Y, 
+                 size = I(r) * 0.10)) +
+  scale_fill_manual(values = col_palette) +
+  #coord_equal() +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave(filename = "packing-carps-hokusai-1.png", 
+       width = 7, 
+       height = 7, 
+       units = "in")
+```
+
+## Make fun shapes
+
+Take the original container and pass a line through it to partition it. Create a data frame for these lines:
+```{r}
+df_lines <- data.frame(x = seq(0,
+                               8,
+                               0.1))
+```
+
+Function for lines:
+```{r}
+df_lines <- df_lines %>%
+  mutate(line_1 = - 0 + 10/(1 + exp(-1 * x + 6)),
+         line_2 = 2 + 10/(1 + exp(-1.3 * x + 4)))
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = container) +
+  geom_line(data = df_lines,
+            aes(x = x, 
+                y = line_1)) +
+  geom_line(data = df_lines,
+            aes(x = x, 
+                y = line_2),
+            color = "blue")
+```
+
+Convert lines to simple features:
+```{r}
+line_1 <- matrix(c(df_lines$x,
+                   df_lines$line_1),
+                 nrow = nrow(df_lines),
+                 byrow = FALSE)
+
+line_2 <- matrix(c(df_lines$x,
+                   df_lines$line_2),
+                 nrow = nrow(df_lines),
+                 byrow = FALSE)
+
+# Convert coordinates to lines and then to simple features
+line_1 <- data.frame(id = 1,
+                     r = NA,
+                     geometry = st_linestring(line_1) %>% 
+                   st_sfc()) %>% 
+  st_as_sf()
+
+line_2 <- data.frame(id = 2,
+                     r = NA,
+                     geometry = st_linestring(line_2) %>% 
+                   st_sfc()) %>% 
+  st_as_sf()
+
+blade <- rbind(line_1,
+               line_2)
+```
+
+Bind to original container:
+```{r}
+container_2 <- container %>%
+  st_cast(to = "POLYGON") %>%
+  st_split(blade)
+```
+
+Convert to polygons:
+```{r}
+container_2 <- container_2 %>%
+  st_collection_extract(c("POLYGON")) %>%
+  mutate(id = 1:n())
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_sf(data = container_2,
+          aes(fill = factor(id)))
+```
+
+Now convert to multilinestring:
+```{r}
+container_2 <- container_2 %>%
+  st_cast(to = "MULTILINESTRING")
+```
+
+Pack and plot these bad boys!
+
+Plot packed sigmoids `Atentado` style:
+```{r}
+col_palette <- mex.brewer("Atentado", 
+                          n = 30)
+
+circles_1 <- container_2 %>%
+  st_circle_packer(max_circles = 3000, 
+                   max_radius = 3,
+                   min_radius = 0.20)
+
+ggplot() + 
+  geom_sf(data = container_2 %>%
+            st_cast(to = "POLYGON") %>%
+            mutate(c = case_when(id == 1 ~ 5,
+                                 id == 2 ~ 15,
+                                 id == 3 ~ 25)), 
+          aes(fill = c),
+          color = NA) +
+  geom_sf(data = circles_1 %>%
+            mutate(c = case_when(id == 1 ~ runif(n(), 11, 20),
+                                 id == 2 ~ runif(n(), 21, 30),
+                                 id == 3 ~ runif(n(), 1, 10))),
+          aes(fill = c),
+          color = "white") +
+  scale_fill_gradientn(colors = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "packing-sigmoids-atentado.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+Plot packed sigmoids `Revolucion` style:
+```{r}
+col_palette <- mex.brewer("Revolucion", 
+                          n = 30)
+
+circles_1 <- container_2 %>%
+  st_circle_packer(max_circles = 3000, 
+                   max_radius = 3,
+                   min_radius = 0.20)
+
+ggplot() + 
+  geom_sf(data = container_2 %>%
+            st_cast(to = "POLYGON") %>%
+            mutate(c = case_when(id == 1 ~ 5,
+                                 id == 2 ~ 15,
+                                 id == 3 ~ 25)), 
+          aes(fill = c),
+          color = NA) +
+  geom_sf(data = circles_1 %>%
+            mutate(c = case_when(id == 1 ~ runif(n(), 11, 20),
+                                 id == 2 ~ runif(n(), 21, 30),
+                                 id == 3 ~ runif(n(), 1, 10))),
+          aes(fill = c),
+          color = "white") +
+  scale_fill_gradientn(colors = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "packing-sigmoids-revolucion.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+Plot packed sigmoids `Alacena` style:
+```{r}
+col_palette <- mex.brewer("Alacena", 
+                          n = 30)
+circles_1 <- container_2 %>%
+  st_circle_packer(max_circles = 3000, 
+                   max_radius = 3,
+                   min_radius = 0.20)
+
+ggplot() + 
+  geom_sf(data = container_2 %>%
+            st_cast(to = "POLYGON") %>%
+            mutate(c = case_when(id == 1 ~ 5,
+                                 id == 2 ~ 15,
+                                 id == 3 ~ 25)), 
+          aes(fill = c),
+          color = NA) +
+  geom_sf(data = circles_1 %>%
+            mutate(c = case_when(id == 1 ~ runif(n(), 11, 20),
+                                 id == 2 ~ runif(n(), 21, 30),
+                                 id == 3 ~ runif(n(), 1, 10))),
+          aes(fill = c),
+          color = "white") +
+  scale_fill_gradientn(colors = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "packing-sigmoids-alacena.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+Plot packed sigmoids `Ronda` style:
+```{r}
+col_palette <- mex.brewer("Ronda", 
+                          n = 30)
+circles_1 <- container_2 %>%
+  st_circle_packer(max_circles = 3000, 
+                   max_radius = 3,
+                   min_radius = 0.20)
+
+ggplot() + 
+  geom_sf(data = container_2 %>%
+            st_cast(to = "POLYGON") %>%
+            mutate(c = case_when(id == 1 ~ 5,
+                                 id == 2 ~ 15,
+                                 id == 3 ~ 25)), 
+          aes(fill = c),
+          color = NA) +
+  geom_sf(data = circles_1 %>%
+            mutate(c = case_when(id == 1 ~ runif(n(), 11, 20),
+                                 id == 2 ~ runif(n(), 21, 30),
+                                 id == 3 ~ runif(n(), 1, 10))),
+          aes(fill = c),
+          color = "white") +
+  scale_fill_gradientn(colors = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "packing-sigmoids-ronda.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+## Enhancements
+
+Modify the function to allow for radius parameters (min/max) to vary by polygon:
+```{r}
+st_circle_packer <- function(p, max_circles = 100, max_radius = 1, min_radius = 0.1){
+  
+  # Initialize the table with circles
+  circles <- data.frame()
+  
+  # Initialize table with tolerance parameters
+  radius_pars <- data.frame(id = 1:nrow(p), min_radius, max_radius)
+  
+  # Convert lines to polygons
+  p_polygons <- p %>%
+    st_cast(to = "POLYGON")
+  
+  # Create initial set of points for potential circles in the space of the bounding box of the polygons
+  region <- st_bbox(p)
+  c_points <- data.frame(x = runif(n = max_circles,
+                                   min = region[1],
+                                   max = region[3]),
+                         y = runif(n = max_circles,
+                                   min = region[2],
+                                   max = region[4]))
+  
+  # Convert the points to simple features and add a unique point identifier (PID)
+  c_points <- c_points %>%
+    st_as_sf(coords = c("x", "y")) %>%
+    mutate(PID = 1:n())
+  
+  # Find any points that fall outside of a polygon and remove
+  c_points <- c_points %>%
+    st_join(p_polygons) %>%
+    drop_na(id)
+  
+  # Initialize stopping criterion
+  stopping_criterion <- TRUE
+  
+  while(stopping_criterion){
+    # Sample one point from each polygon: these points are candidates for circles
+    circle_candidates <- c_points %>% 
+      group_by(id) %>%
+      slice_sample(n =1) %>%
+      ungroup()
+    
+    # Remove the points sampled from the table of points so that they are not considered again in the future
+    c_points <- c_points %>%
+      anti_join(circle_candidates %>%
+                  st_drop_geometry() %>%
+                  select(PID),
+                by = "PID")
+    
+    # Find the distance of the candidate points to the boundaries of the polygons if no circles exist yet
+    if(nrow(circles) == 0){
+      circle_candidates$r <- circle_candidates %>%
+        st_distance(p) %>% 
+        data.frame() %>%
+        apply(1, min)
+    }# Find the distance of the candidate points to the boundaries of the polygons and circles if they exist
+    else{
+      circle_candidates$r <- circle_candidates %>%
+        st_distance(rbind(p, 
+                          circles %>%
+                            select(-PID))) %>% 
+        data.frame() %>%
+        apply(1, min)
+    }
+    
+    # Join the tolerance parameters and filter candidates with a radius greater than the minimum
+    circle_candidates <- circle_candidates %>% 
+      left_join(radius_pars, by = "id") %>%
+      filter(r >= min_radius)
+    
+    # Make sure that the radius does not exceed the maximum
+    circle_candidates <- circle_candidates %>%
+      mutate(r = ifelse(r >= max_radius, max_radius, r)) %>%
+      select(-c(min_radius, max_radius)) # Drop tolerance parameters from table, no longer needed
+    
+    # If there are candidates points with a radius above the tolerance then create circles
+    if(nrow(circle_candidates) > 0){
+      # Use the points and buffers to create circles that are added to the existing table of circles
+      circles <- rbind(circles,
+                       circle_candidates %>%
+                         st_buffer(dist = circle_candidates$r))
+      
+      # Clear points that are now _inside_ a circle from the candidates (the radius will _not_ be NA)
+      c_points <- c_points %>%
+        select(-c(r)) %>% 
+        st_join(circles %>%
+                  select(r)) %>%
+        filter(is.na(r))
+    }
+    stopping_criterion <- nrow(c_points) > 0
+  }
+  return(circles)
+}
+```
+
+
+
+```{r}
+col_palette <- mex.brewer("Atentado", 
+                          n = 30)
+
+circles_1 <- container_2 %>%
+  st_circle_packer(max_circles = 3000, 
+                   max_radius = c(2.5, 1, 0.5),
+                   min_radius = c(0.20, 0.1, 0.01))
+
+ggplot() + 
+  geom_sf(data = container_2 %>%
+            st_cast(to = "POLYGON") %>%
+            mutate(c = case_when(id == 1 ~ 5,
+                                 id == 2 ~ 15,
+                                 id == 3 ~ 25)), 
+          aes(fill = c),
+          color = NA) +
+  geom_sf(data = circles_1 %>%
+            mutate(c = case_when(id == 1 ~ runif(n(), 11, 20),
+                                 id == 2 ~ runif(n(), 21, 30),
+                                 id == 3 ~ runif(n(), 1, 10))),
+          aes(fill = c),
+          color = "white") +
+  scale_fill_gradientn(colors = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "packing-sigmoids-2-atentado.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+
+

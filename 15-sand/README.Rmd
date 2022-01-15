@@ -289,13 +289,13 @@ ggplot() +
           fill = mex.brewer("Revolucion")[8]) +
   # Plot "sun"
   geom_sf(data = sun[3,],
-          color = NA,
+          color = "black",
           fill = mex.brewer("Revolucion")[2]) +
   geom_sf(data = sun[2,],
-          color = NA,
+          color = "black",
           fill = mex.brewer("Revolucion")[3]) +
   geom_sf(data = sun[1,],
-          color = NA,
+          color = "black",
           fill = mex.brewer("Revolucion")[4]) +
   # Plot "ground" polygons
   geom_sf(data = container_2 %>%
@@ -354,13 +354,13 @@ ggplot() +
           fill = mex.brewer("Alacena")[7]) +
   # Plot "sun"
   geom_sf(data = sun[3,],
-          color = NA,
+          color = "black",
           fill = mex.brewer("Alacena")[2]) +
   geom_sf(data = sun[2,],
-          color = NA,
+          color = "black",
           fill = mex.brewer("Alacena")[3]) +
   geom_sf(data = sun[1,],
-          color = NA,
+          color = "black",
           fill = mex.brewer("Alacena")[4]) +
   # Plot "ground" polygons
   geom_sf(data = container_2 %>%
@@ -419,13 +419,13 @@ ggplot() +
           fill = mex.brewer("Revolucion")[7]) +
   # Plot "sun"
   geom_sf(data = sun[3,],
-          color = NA,
+          color = "white",
           fill = mex.brewer("Revolucion")[2]) +
   geom_sf(data = sun[2,],
-          color = NA,
+          color = "white",
           fill = mex.brewer("Revolucion")[3]) +
   geom_sf(data = sun[1,],
-          color = NA,
+          color = "white",
           fill = mex.brewer("Revolucion")[4]) +
   # Plot "ground" polygons
   geom_sf(data = container_2 %>%

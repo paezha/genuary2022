@@ -152,8 +152,14 @@ Just an excuse to pack more stuff.
 
 ![](13-800x80/800x80-2.png)
 
-## Day 13: Sand
+## Day 15: Sand
 
 Even more circle packing.
 
 ![](15-sand/sand-atentado-revolucion.png)
+
+## Day 16: Color gradients gone wrong
+
+For this prompt I revisit a machine learning exercise but go back in time, and force a self-organizing map to become self-disorganizing.
+
+![](16-gradients-gone-wrong/ggw_animation_ronda.gif)

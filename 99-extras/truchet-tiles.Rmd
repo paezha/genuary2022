@@ -1,0 +1,495 @@
+---
+title: "Truchet Tiles"
+output: html_notebook
+---
+
+Truchet tiles. See: https://en.wikipedia.org/wiki/Truchet_tiles
+
+I need the following elements: 2 points and one square tile.
+
+Load packages:
+
+```{r load-packages, cache = FALSE, warning=FALSE, message=FALSE}
+#library(ggforce)
+#library(ggimage)
+#library(lwgeom)
+library(MexBrewer)
+library(sf)
+library(tidyverse)
+```
+
+Create a one-by-one tile:
+```{r}
+tile <- matrix(c(0, 0, 
+                 0, 1, 
+                 1, 1,  
+                 1, 0,
+                 0, 0),
+               ncol = 2,
+               byrow = TRUE)
+
+# Convert coordinates to polygons and then to simple features
+tile <- data.frame(id = 1,
+                   r = NA,
+                   geometry = st_polygon(list(tile)) %>% 
+                     st_sfc()) %>% 
+  st_as_sf()
+```
+
+Plot tile:
+```{r}
+ggplot() +
+  geom_sf(data =  tile)
+```
+
+Now create two points:
+```{r}
+pts <- data.frame(id = c("points_1", "points_2", "points_1", "points_2"), 
+                  x = c(0, 0, 1, 1),
+                  y = c(0, 1, 1, 0))
+
+# Convert coordinates to points and then to simple features
+pts <- pts %>%
+  st_as_sf(coords = c("x", "y"))
+```
+
+Create circle segments:
+```{r}
+cs <- c(0.5, 0.35, 0.2)
+
+bfs <- rbind(pts %>% 
+               mutate(r = cs[1], 
+                      geometry = pts %>%
+                        st_buffer(dist = r) %>% 
+                        pull(geometry)),
+             pts %>% 
+               mutate(r = cs[2], 
+                      geometry = pts %>%
+                        st_buffer(dist = r) %>% 
+                        pull(geometry)),
+             pts %>% 
+               mutate(r = cs[3], 
+                      geometry = pts %>%
+                        st_buffer(dist = r) %>% 
+                        pull(geometry)))
+```
+
+```{r}
+bfs_1 <- bfs %>%
+  filter(id == "points_1") %>%
+  st_intersection(st_geometry(tile))
+
+bfs_2 <- bfs %>%
+  filter(id == "points_2") %>%
+  st_intersection(st_geometry(tile))
+```
+
+Make tiles:
+```{r}
+tile_1 <- bfs_1 %>%
+  transmute(c = case_when(r == cs[1] ~ 1,
+                          r == cs[2] ~ 2,
+                          r == cs[3] ~ 3))
+
+tile_2 <- bfs_2 %>%
+  transmute(c = case_when(r == cs[1] ~ 1,
+                          r == cs[2] ~ 2,
+                          r == cs[3] ~ 3))
+```
+
+Translate so that the origin is at the center of the tile:
+```{r}
+tile_1 <- tile_1 %>%
+  mutate(geometry = st_geometry(tile_1) + c(-0.5, -0.5))
+
+tile_2 <- tile_2 %>%
+  mutate(geometry = st_geometry(tile_2) + c(-0.5, -0.5))
+
+tiles <- rbind(data.frame(tile_1, tile = 1),
+               data.frame(tile_2, tile = 2))
+```
+
+```{r}
+# Create grid for placing tiles
+df <- data.frame(expand.grid(x = seq(1, 8, 1),
+                             y = seq(1, 12, 1)))
+
+# Create container for mosaic
+container <- matrix(c(min(df$x) - 0.5, min(df$y) - 0.5, 
+                      min(df$x) - 0.5, max(df$y) + 0.5, 
+                      max(df$x) + 0.5, max(df$y) + 0.5,  
+                      max(df$x) + 0.5, min(df$y) - 0.5,
+                      min(df$x) - 0.5, min(df$y) - 0.5),
+                    ncol = 2,
+                    byrow = TRUE)
+
+# Convert coordinates of container to polygons and then to simple features
+container <- data.frame(id = 1,
+                        r = NA,
+                        geometry = st_polygon(list(container)) %>% 
+                          st_sfc()) %>% 
+  st_as_sf()
+
+mosaic <- data.frame()
+
+for(i in 1:nrow(df)){
+  mosaic <- rbind(mosaic,
+                  tiles %>%
+                    filter(tile == sample.int(2, 1)) %>%
+                    mutate(geometry = geometry + c(df[i, 1], df[i, 2])) %>%
+                    st_as_sf())
+}
+
+ggplot() +
+  geom_sf(data = container) +
+  geom_sf(data = mosaic,
+          aes(fill = factor(c)),
+          color = NA) + 
+  theme_void()
+```
+
+Make pretty:
+```{r}
+# Create grid for placing tiles
+df <- data.frame(expand.grid(x = seq(1, 8, 1),
+                             y = seq(1, 12, 1)))
+
+# Create container for mosaic
+container <- matrix(c(min(df$x) - 0.5, min(df$y) - 0.5, 
+                      min(df$x) - 0.5, max(df$y) + 0.5, 
+                      max(df$x) + 0.5, max(df$y) + 0.5,  
+                      max(df$x) + 0.5, min(df$y) - 0.5,
+                      min(df$x) - 0.5, min(df$y) - 0.5),
+                    ncol = 2,
+                    byrow = TRUE)
+
+# Convert coordinates of container to polygons and then to simple features
+container <- data.frame(id = 1,
+                        r = NA,
+                        geometry = st_polygon(list(container)) %>% 
+                          st_sfc()) %>% 
+  st_as_sf()
+
+mosaic <- data.frame()
+
+for(i in 1:nrow(df)){
+  mosaic <- rbind(mosaic,
+                  tiles %>%
+                    filter(tile == sample.int(2, 1)) %>%
+                    mutate(geometry = geometry + c(df[i, 1], df[i, 2])) %>%
+                    st_as_sf())
+}
+
+# Sample from color palette
+col_palette <- mex.brewer("Alacena")
+col_palette_1 <- col_palette[c(5, 6)]
+col_palette_2 <- col_palette[-c(5, 6)]
+col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette_1[sample.int(2, 1)]) +
+  geom_sf(data = mosaic,
+          aes(fill = factor(c)),
+          color = NA) + 
+  scale_fill_manual(values = col_palette_2) +
+  theme_void() +
+  theme(legend.position = "none")
+```
+
+Inputs:
+- A set of tiles
+- Grid coordinates
+
+Turn it into a function:
+```{r}
+st_truchet <- function(t, xlim = c(1, 8), ylim = c(1, 12)){
+  # Create grid for placing tiles
+  df <- data.frame(expand.grid(x = seq(xlim[1], xlim[2], 1),
+                               y = seq(ylim[1], ylim[2], 1)))
+  
+  # Create container for mosaic
+  container <- matrix(c(min(df$x) - 0.5, min(df$y) - 0.5, 
+                        min(df$x) - 0.5, max(df$y) + 0.5, 
+                        max(df$x) + 0.5, max(df$y) + 0.5,  
+                        max(df$x) + 0.5, min(df$y) - 0.5,
+                        min(df$x) - 0.5, min(df$y) - 0.5),
+                      ncol = 2,
+                      byrow = TRUE)
+  
+  # Convert coordinates of container to polygons and then to simple features
+  container <- data.frame(id = 1,
+                          r = NA,
+                          geometry = st_polygon(list(container)) %>% 
+                            st_sfc()) %>% 
+    st_as_sf()
+  
+  mosaic <- data.frame()
+  
+  for(i in 1:nrow(df)){
+    mosaic <- rbind(mosaic,
+                    t %>%
+                      filter(tile == sample.int(2, 1)) %>%
+                      mutate(group = i,
+                             geometry = geometry + c(df[i, 1], df[i, 2])) %>%
+                      st_as_sf())
+  }
+  return(list(container = container, mosaic = mosaic))
+}
+```
+
+Use function to create mosaic:
+```{r}
+mosaic <- st_truchet(tiles)
+
+# Sample from color palette
+col_palette <- mex.brewer("Revolucion")
+col_palette_1 <- col_palette[c(5, 6)]
+col_palette_2 <- col_palette[-c(5, 6)]
+col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = mosaic[["container"]],
+          fill = col_palette_1[sample.int(2, 1)]) +
+  geom_sf(data = mosaic[["mosaic"]],
+          aes(fill = factor(c)),
+          color = NA) + 
+  scale_fill_manual(values = col_palette_2) +
+  theme_void() +
+  theme(legend.position = "none")
+```
+
+```{r}
+ggsave(filename = "truchet-atentado-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+## Change the tiles
+
+Create circle segments:
+```{r}
+cs <- c(0.5)
+
+bfs <- pts %>% 
+  mutate(r = cs[1], 
+         geometry = pts %>%
+           st_buffer(dist = r) %>% 
+           pull(geometry)) %>% 
+  st_cast(to = "LINESTRING")
+```
+
+```{r}
+bfs_1 <- bfs %>%
+  filter(id == "points_1") %>%
+  st_intersection(st_geometry(tile))
+
+bfs_2 <- bfs %>%
+  filter(id == "points_2") %>%
+  st_intersection(st_geometry(tile))
+```
+
+Make tiles:
+```{r}
+tile_1 <- bfs_1
+
+tile_2 <- bfs_2
+```
+
+Translate so that the origin is at the center of the tile:
+```{r}
+tile_1 <- tile_1 %>%
+  mutate(geometry = st_geometry(tile_1) + c(-0.5, -0.5))
+
+tile_2 <- tile_2 %>%
+  mutate(geometry = st_geometry(tile_2) + c(-0.5, -0.5))
+
+tiles <- rbind(data.frame(tile_1, tile = 1),
+               data.frame(tile_2, tile = 2)) %>% 
+  st_as_sf()
+```
+
+Use these new tiles to create mosaic:
+```{r}
+mosaic <- st_truchet(tiles)
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+
+# Sample from color palette
+col_palette <- mex.brewer("Revolucion")
+col_palette_1 <- col_palette[c(5, 6)]
+col_palette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic,
+          aes(color = group), #col_palette_2[sample.int(8, 1)],
+          size = 6) + 
+  scale_color_gradientn(colors = col_palette_2) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-revolucion-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+<!-- Animation not working 
+Animate process:
+Use these new tiles to create mosaic:
+```{r}
+# Plot
+anim <- ggplot() +
+  geom_sf(data = container,
+          fill = col_palette_1[sample.int(2, 1)]) +
+  geom_sf(data = mosaic %>%
+            mutate(t = 1:n()),
+          color = col_palette_2[sample.int(8, 1)],
+          size = 2) + 
+  theme_void() +
+  theme(legend.position = "none") +
+  transition_states(t, transition_length = 3, state_length = 2) +
+   ggtitle('Now showing {closest_state}',
+          subtitle = 'Frame {frame} of {nframes}')
+
+animate(anim)
+
+anim_save(file = "junk.gif")
+```
+
+-->
+
+Create different tiles:
+```{r}
+
+line_1 <- matrix(c(0, 1/10, 1/10, 3/10, 3/10, 1/2, 1/2,
+                   1/2, 1/2, 7/10, 7/10, 9/10, 9/10, 1),
+                 nrow = 7,
+                 byrow = FALSE)
+
+line_2 <- matrix(c(1/2, 1/2, 7/10, 7/10, 9/10, 9/10, 1,
+                   0, 1/10, 1/10, 3/10, 3/10, 1/2, 1/2),
+                 nrow = 7,
+                 byrow = FALSE)
+
+line_3 <- matrix(c(0, 1/10, 1/10, 3/10, 3/10, 1/2, 1/2,
+                   1/2, 1/2, 3/10, 3/10, 1/10, 1/10, 0),
+                 nrow = 7,
+                 byrow = FALSE)
+
+line_4 <- matrix(c(1/2, 1/2, 7/10, 7/10, 9/10, 9/10, 1,
+                   1, 9/10, 9/10, 7/10, 7/10, 1/2, 1/2),
+                 nrow = 7,
+                 byrow = FALSE)
+
+# Convert coordinates to lines and then to simple features
+line_1 <- data.frame(id = 1,
+                     r = NA,
+                     geometry = st_linestring(line_1) %>% 
+                   st_sfc()) %>% 
+  st_as_sf()
+
+line_2 <- data.frame(id = 2,
+                     r = NA,
+                     geometry = st_linestring(line_2) %>% 
+                   st_sfc()) %>% 
+  st_as_sf()
+
+line_3 <- data.frame(id = 3,
+                     r = NA,
+                     geometry = st_linestring(line_3) %>% 
+                   st_sfc()) %>% 
+  st_as_sf()
+
+line_4 <- data.frame(id = 4,
+                     r = NA,
+                     geometry = st_linestring(line_4) %>% 
+                   st_sfc()) %>% 
+  st_as_sf()
+```
+
+Make tiles:
+```{r}
+tile_1 <- rbind(line_1, line_2)
+
+tile_2 <- rbind(line_3, line_4)
+```
+
+Translate so that the origin is at the center of the tile:
+```{r}
+tile_1 <- tile_1 %>%
+  mutate(geometry = st_geometry(tile_1) + c(-0.5, -0.5))
+
+tile_2 <- tile_2 %>%
+  mutate(geometry = st_geometry(tile_2) + c(-0.5, -0.5))
+
+tiles <- rbind(data.frame(tile_1, tile = 1),
+               data.frame(tile_2, tile = 2)) %>%
+  st_as_sf()
+```
+
+Use these new tiles to create mosaic:
+```{r}
+mosaic <- st_truchet(tiles)
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+
+# Sample from color palette
+col_palette <- mex.brewer("Revolucion")
+col_palette_1 <- col_palette[c(5, 6)]
+col_pal1ette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic,
+          aes(color = group), #col_palette_2[sample.int(8, 1)],
+          size = 6) + 
+  scale_color_gradientn(colors = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-revolucion-blocks-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+Change palette
+```{r}
+mosaic <- st_truchet(tiles)
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+
+# Sample from color palette
+col_palette <- mex.brewer("Atentado")
+col_palette_1 <- col_palette[c(5, 6)]
+col_pal1ette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic,
+          aes(color = group), #col_palette_2[sample.int(8, 1)],
+          size = 6) + 
+  scale_color_gradientn(colors = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-atentado-blocks-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+

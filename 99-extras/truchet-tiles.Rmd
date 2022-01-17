@@ -13,6 +13,7 @@ Load packages:
 #library(ggforce)
 #library(ggimage)
 #library(lwgeom)
+library(gganimate)
 library(MexBrewer)
 library(sf)
 library(tidyverse)
@@ -262,10 +263,10 @@ ggplot() +
 ```
 
 ```{r}
-ggsave(filename = "truchet-atentado-1.png", 
-       width = 8, 
-       height = 12, 
-       units = "in")
+# ggsave(filename = "truchet-atentado-1.png", 
+#        width = 8, 
+#        height = 12, 
+#        units = "in")
 ```
 
 ## Change the tiles
@@ -335,36 +336,36 @@ ggplot() +
   theme_void() + 
   theme(legend.position = "none")
 
-ggsave(filename = "truchet-revolucion-1.png", 
-       width = 8, 
-       height = 12, 
-       units = "in")
+# ggsave(filename = "truchet-revolucion-1.png", 
+#        width = 8, 
+#        height = 12, 
+#        units = "in")
 ```
 
-<!-- Animation not working 
 Animate process:
-Use these new tiles to create mosaic:
 ```{r}
 # Plot
-anim <- ggplot() +
+process_anim <- ggplot() +
   geom_sf(data = container,
-          fill = col_palette_1[sample.int(2, 1)]) +
-  geom_sf(data = mosaic %>%
-            mutate(t = 1:n()),
-          color = col_palette_2[sample.int(8, 1)],
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic,
+          aes(color = group), #col_palette_2[sample.int(8, 1)],
           size = 2) + 
-  theme_void() +
+  scale_color_gradientn(colors = col_palette_2) +
+  theme_void() + 
   theme(legend.position = "none") +
-  transition_states(t, transition_length = 3, state_length = 2) +
-   ggtitle('Now showing {closest_state}',
-          subtitle = 'Frame {frame} of {nframes}')
+  transition_time(group) + 
+  shadow_mark()
 
-animate(anim)
+animate(process_anim,
+        height = 3, 
+        width = 2, 
+        units = "in",
+        res = 300)
 
-anim_save(file = "junk.gif")
+anim_save("process_anim.gif")
 ```
 
--->
 
 Create different tiles:
 ```{r}
@@ -458,10 +459,10 @@ ggplot() +
   theme_void() + 
   theme(legend.position = "none")
 
-ggsave(filename = "truchet-revolucion-blocks-1.png", 
-       width = 8, 
-       height = 12, 
-       units = "in")
+# ggsave(filename = "truchet-revolucion-blocks-1.png", 
+#        width = 8, 
+#        height = 12, 
+#        units = "in")
 ```
 
 Change palette
@@ -487,9 +488,208 @@ ggplot() +
   theme_void() + 
   theme(legend.position = "none")
 
-ggsave(filename = "truchet-atentado-blocks-1.png", 
+#ggsave(filename = "truchet-atentado-blocks-1.png", 
+#       width = 8, 
+#       height = 12, 
+#       units = "in")
+```
+
+## Refinements
+
+### Union of lines?
+
+Create circle segments:
+```{r}
+cs <- c(0.5)
+
+bfs <- pts %>% 
+  mutate(r = cs[1], 
+         geometry = pts %>%
+           st_buffer(dist = r) %>% 
+           pull(geometry)) %>% 
+  st_cast(to = "LINESTRING")
+```
+
+```{r}
+bfs_1 <- bfs %>%
+  filter(id == "points_1") %>%
+  st_intersection(st_geometry(tile))
+
+bfs_2 <- bfs %>%
+  filter(id == "points_2") %>%
+  st_intersection(st_geometry(tile))
+```
+
+Make tiles:
+```{r}
+tile_1 <- bfs_1
+
+tile_2 <- bfs_2
+```
+
+Translate so that the origin is at the center of the tile:
+```{r}
+tile_1 <- tile_1 %>%
+  mutate(geometry = st_geometry(tile_1) + c(-0.5, -0.5))
+
+tile_2 <- tile_2 %>%
+  mutate(geometry = st_geometry(tile_2) + c(-0.5, -0.5))
+
+tiles <- rbind(data.frame(tile_1, tile = 1),
+               data.frame(tile_2, tile = 2)) %>% 
+  st_as_sf()
+```
+
+
+```{r}
+mosaic <- st_truchet(tiles)
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+```
+
+Union:
+```{r}
+mosaic_buffer <- st_union(mosaic)
+```
+
+```{r}
+mosaic_buffer <- rbind(data.frame(group = 1, 
+                           st_buffer(mosaic_buffer, dist = c(0.2))) %>% 
+                  st_as_sf(),
+                data.frame(group = 2, 
+                           st_buffer(mosaic_buffer, dist = c(0.1))) %>% 
+                  st_as_sf(),
+                data.frame(group = 3, 
+                           st_buffer(mosaic_buffer, dist = c(0.05))) %>% 
+                  st_as_sf())
+
+```
+
+
+```{r}
+col_palette <- mex.brewer("Atentado")
+col_palette_1 <- col_palette[c(5, 6)]
+col_pal1ette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic_buffer,
+          aes(fill = factor(group))) + 
+  scale_fill_manual(values = c(col_palette[sample.int(10, 1)], 
+                               "white", 
+                               col_palette[sample.int(10, 1)])) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-atentado-buffered-1.png", 
        width = 8, 
        height = 12, 
        units = "in")
 ```
+
+```{r}
+col_palette <- mex.brewer("Revolucion")
+col_palette_1 <- col_palette[c(5, 6)]
+col_pal1ette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic_buffer,
+          aes(fill = factor(group))) + 
+  scale_fill_manual(values = c(col_palette[sample.int(10, 1)], 
+                               "white", 
+                               col_palette[sample.int(10, 1)])) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-revolucion-buffered-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+
+
+```{r}
+col_palette <- mex.brewer("Frida")
+col_palette_1 <- col_palette[c(5, 6)]
+col_pal1ette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic_buffer,
+          aes(fill = factor(group))) + 
+  scale_fill_manual(values = c(col_palette[sample.int(10, 1)], 
+                               "white", 
+                               col_palette[sample.int(10, 1)])) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-frida-buffered-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+```{r}
+col_palette <- mex.brewer("Aurora")
+col_palette_1 <- col_palette[c(5, 6)]
+col_pal1ette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic_buffer,
+          aes(fill = factor(group))) + 
+  scale_fill_manual(values = c(col_palette[sample.int(10, 1)], 
+                               "white", 
+                               col_palette[sample.int(10, 1)])) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-aurora-buffered-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+```{r}
+col_palette <- mex.brewer("Alacena")
+col_palette_1 <- col_palette[c(5, 6)]
+col_pal1ette_2 <- col_palette[-c(5, 6)]
+#col_palette_2 <- col_palette_2[sample.int(8, 3)] 
+
+# Plot
+ggplot() +
+  geom_sf(data = container,
+          fill = col_palette[sample.int(10, 1)]) +
+  geom_sf(data = mosaic_buffer,
+          aes(fill = factor(group))) + 
+  scale_fill_manual(values = c(col_palette[sample.int(10, 1)], 
+                               "white", 
+                               col_palette[sample.int(10, 1)])) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave(filename = "truchet-alacena-buffered-1.png", 
+       width = 8, 
+       height = 12, 
+       units = "in")
+```
+
+
+
+
+
 

@@ -160,6 +160,12 @@ Even more circle packing.
 
 ## Day 16: Color gradients gone wrong
 
-For this prompt I revisit a machine learning exercise but go back in time, and force a self-organizing map to become self-disorganizing.
+For this prompt I revisited a machine learning exercise but made it go back in time, and forced a self-organizing map to become self-disorganizing.
 
 ![](16-gradients-gone-wrong/ggw_animation_ronda.gif)
+## Day 17: Color gradients gone wrong
+
+
+Each overlapping hatching pattern uses a different color. The hatching patterns were cut using truchet tiles.
+
+![](17-three-colors/three-colors-aurora.png)

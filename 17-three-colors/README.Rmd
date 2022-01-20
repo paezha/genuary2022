@@ -243,6 +243,26 @@ df_hatch_3 <- data.frame(x = runif(n_hatch,
 df_hatch_3_coords <- df_hatch_3 %>% 
   select(x, 
          y)
+
+# Create opposite hatching pattern
+df_hatch_4 <- data.frame(x = runif(n_hatch, 
+                                 min = st_bbox(container)[1], 
+                                 max = st_bbox(container)[3]),
+                       y = runif(n_hatch,
+                                 min = st_bbox(container)[2],
+                                 max = st_bbox(container)[4])) %>%
+  # Calculate endpoints for the line segments that will produce the hatching
+  mutate(l = runif(n(), 
+                         min = 0.5, 
+                         max = runif(n(), 
+                                     min = 0.5,
+                                     max = y/4 + 0.5)),
+         xend = x + l,
+         yend = y + l)
+
+df_hatch_4_coords <- df_hatch_3 %>% 
+  select(x, 
+         y)
 ```
 
 Plot these hatching patterns:
@@ -302,6 +322,11 @@ df_hatch_3 <- df_hatch_3 %>%
     select(x, y, xend, yend) %>% 
     pmap(make_line) %>%
   st_as_sfc()
+
+df_hatch_3 <- df_hatch_4 %>%
+    select(x, y, xend, yend) %>% 
+    pmap(make_line) %>%
+  st_as_sfc()
 ```
 
 Crop the hatching patterns using the container:
@@ -317,6 +342,11 @@ df_hatch_2 <- df_hatch_1_coords %>%
   st_crop(container)
 
 df_hatch_3 <- df_hatch_3_coords %>% 
+  mutate(geometry = st_geometry(df_hatch_3)) %>%
+  st_as_sf() %>%
+  st_crop(container)
+
+df_hatch_3 <- df_hatch_4_coords %>% 
   mutate(geometry = st_geometry(df_hatch_3)) %>%
   st_as_sf() %>%
   st_crop(container)
@@ -340,10 +370,14 @@ df_hatch_1_cropped <- df_hatch_1 %>%
                     filter(group == 1))
 
 df_hatch_2_cropped <- df_hatch_2 %>%
-  st_difference(mosaic_buffer %>%
+  st_intersection(mosaic_buffer %>%
                     filter(group == 1))
 
 df_hatch_3_cropped <- df_hatch_3 %>%
+  st_difference(mosaic_buffer %>%
+                    filter(group == 1))
+
+df_hatch_4_cropped <- df_hatch_4 %>%
   st_difference(mosaic_buffer %>%
                     filter(group == 1))
 ```
@@ -374,12 +408,16 @@ ggplot()  +
           aes(alpha = ((st_bbox(container)[3] - x) * (st_bbox(container)[4] - y))),
           color = col_palette[1],
           size = 0.2) +
+  geom_sf(data = df_hatch_4_cropped,
+          aes(alpha = ((st_bbox(container)[3] - x) * (st_bbox(container)[4] - y))),
+          color = col_palette[1],
+          size = 0.2) +
   geom_sf(data = df_hatch_1_cropped,
           aes(alpha = x * y),
           color = col_palette[2],
           size = 0.2) +
   geom_sf(data = df_hatch_2_cropped,
-          aes(alpha = ((st_bbox(container)[3] - x) * (st_bbox(container)[4] - y))),
+          aes(alpha = x * y),
           color = col_palette[3],
           size = 0.2) +
   theme_void() +

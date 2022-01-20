@@ -177,10 +177,18 @@ For this prompt I revisited a machine learning exercise but made it go
 back in time, and forced a self-organizing map to become
 self-disorganizing.
 
-![](16-gradients-gone-wrong/ggw_animation_ronda.gif) ## Day 17: Color
-gradients gone wrong
+![](16-gradients-gone-wrong/ggw_animation_ronda.gif)
+
+## Day 17: Color gradients gone wrong
 
 Each overlapping hatching pattern uses a different color. The hatching
 patterns were cut using truchet tiles.
 
 ![](17-three-colors/three-colors-aurora.png)
+
+## Day 19: Text/typography
+
+For this entry I made some waves using a randomly chose fragment of text
+from Melville’s Moby Dick.
+
+![](19-text/text-sea-split-sequentially-revolucion.png)

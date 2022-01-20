@@ -983,11 +983,38 @@ ggplot() +
   theme_void() +
   scale_fill_manual(values = c("1" = "white", "2" = MexBrewer::mex.brewer("Alacena")[9])) +
   theme(legend.position = "none")
+```
+
+```{r}
+mosaic_2 <- mosaic %>%
+  group_by(color) %>%
+  summarize(color = max(color))
+```
+
+```{r}
+mosaic_3 <- mosaic_2[1,] %>%
+  st_difference(mosaic_2[2,]) %>%
+  st_cast(to = "POLYGON") %>%
+  mutate(area = st_area(geometry))
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = container,
+          color = NA,
+          fill = "white") +
+  geom_sf(data = mosaic_3 %>%
+            filter(area > 0.28 & area < 0.2944235),
+          fill = "red") +
+  geom_sf(data = mosaic_2[2,] %>%
+            st_crop(container),
+          color = NA,
+          fill = "blue") +
+  theme_void()
+
 
 ggsave(filename = "truchet-p3-white-on-blue.png", 
         width = 8, 
         height = 12, 
         units = "in")
 ```
-
-

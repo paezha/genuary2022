@@ -192,3 +192,10 @@ For this entry I made some waves using a randomly chose fragment of text
 from Melville’s Moby Dick.
 
 ![](19-text/text-sea-split-sequentially-revolucion.png)
+
+## Day 21: Combine two previous pieces to create something new
+
+Here I combined dithering and text to create this portrait of Melville
+with text from Moby Dick.
+
+![](21-combine-two/melville-text-tierra.png)

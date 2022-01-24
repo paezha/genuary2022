@@ -182,4 +182,10 @@ Here I combined dithering and text to create this portrait of Melville with text
 
 ![](21-combine-two/melville-text-tierra.png)
 
+## Day 23: Abstract vegetation
 
+I did not have today to do any original coding, but I was very curious to explore Pierre Casadebaig's [{generate}](https://github.com/picasa/generate) package, so this was a great chance to look into it. These are the results.
+
+![](23-abstract-vegetation/abstract-vegetation-atentado.png)
+
+![](23-abstract-vegetation/abstract-vegetation-tierra.png)

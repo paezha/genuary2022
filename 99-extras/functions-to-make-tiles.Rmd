@@ -5,6 +5,8 @@ output: html_notebook
 
 Create a set of truchet tiles for use in tiling.
 
+**NOTE** These functions are now implemented in package [{truchet}](https://paezha.github.io/truchet/)
+
 Load packages:
 
 ```{r load-packages, cache = FALSE, warning=FALSE, message=FALSE}

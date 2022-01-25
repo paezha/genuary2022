@@ -1,0 +1,245 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Today I will use the following packages:
+```{r load-packages, cache = FALSE, warning=FALSE, message=FALSE}
+library(geomtextpath)
+library(lwgeom)
+library(MexBrewer)
+library(sf)
+library(tidyverse)
+```
+
+## Creating a seascape
+
+Create a polygon of to become the frame for my "landscape":
+```{r}
+container_polygon <- matrix(c(0, 0, 
+                              0, 8, 
+                              12, 8,  
+                              12, 0,
+                              0, 0),
+                            ncol = 2,
+                            byrow = TRUE)
+
+# Convert coordinates to polygons and then to simple features
+container_polygon <- data.frame(id = 1,
+                                r = NA,
+                                geometry = st_polygon(list(container_polygon)) %>% 
+                                  st_sfc()) %>% 
+  st_as_sf()
+```
+
+Plot this initial container:
+```{r}
+ggplot() + 
+  geom_sf(data = container_polygon)
+```
+
+Make waves:
+```{r}
+# Initialize data frame
+df_lines <- data.frame(x = seq(0,
+                               12,
+                               0.1))
+
+# Initialize position in y
+vjust <- seq(0.5, 6, 0.2)
+
+# Initialize amplitude of waves
+Amax <- 0.5
+Amin <- 0.1
+A <- seq(Amin, Amax, (Amax - Amin)/length(vjust))[1:length(vjust)]
+
+# Initialize inverse of f
+f <- seq(8, 10, 1)
+
+# Initialize phase
+phi <- seq(0, 2 * pi, pi/6)
+
+
+# Initialize counter
+count <- 0
+
+# Make waves
+for(i in vjust){
+  count <- count + 1
+  df_lines[[paste0("line_", count, collapse = "")]] <- (A[count] * cos(2 * pi * 1/f[sample.int(length(f), 1)] * df_lines$x + phi[sample.int(length(phi), 1)]) + vjust[count])
+}
+
+# Pivot longer
+df_lines <- df_lines %>%
+  pivot_longer(cols = -x, names_to = "line", values_to = "y")
+```
+
+Make "blade for splitting container:
+```{r}
+df_blade <- df_lines %>%
+  group_by(x) %>%
+  summarize(y = max(y),
+            .groups = "drop")
+```
+
+Turn blade to sf:
+```{r}
+blade <- matrix(c(df_blade$x,
+                  df_blade$y),
+                nrow = nrow(df_blade),
+                byrow = FALSE)
+
+# Convert coordinates to lines and then to simple features
+blade <- data.frame(id = 1,
+                    geometry = st_linestring(blade) %>% 
+                      st_sfc()) %>% 
+  st_as_sf()
+```
+
+Split original container:
+```{r}
+container_2 <- container_polygon %>%
+  st_split(blade)
+```
+
+Extract polygons and give them new ids:
+```{r}
+container_2 <- container_2 %>%
+  st_collection_extract(c("POLYGON")) %>%
+  mutate(id = 1:n())
+```
+
+Separate container for sky and smash the rest. 
+```{r}
+container_sky <- container_2 %>%
+  filter(id == 2)
+
+# Initialize container
+container_sea_2 <- container_2 %>%
+  filter(id == 1)
+
+for(i in 1:length(vjust)){
+  # Recreate blade
+  df_blade <- df_lines %>%
+    filter(line == paste0("line_", i, collapse = ""))
+  
+  blade <- matrix(c(df_blade$x,
+                    df_blade$y),
+                  nrow = nrow(df_blade),
+                  byrow = FALSE)
+  
+  # Convert coordinates to lines and then to simple features
+  blade <- data.frame(id = 1,
+                      geometry = st_linestring(blade) %>% 
+                        st_sfc()) %>% 
+    st_as_sf()
+  
+  # Split the container for the sea
+  container_sea_2 <- container_sea_2 %>%
+                           st_split(blade) %>%
+                           st_collection_extract(c("POLYGON")) %>%
+                           mutate(id = 1:n())
+  
+}
+```
+
+Plot with sea split sequentially:
+```{r}
+# Color palette
+col_palette <- mex.brewer("Atentado")
+
+# Create a sun
+sun <- data.frame(disk = 1:3,
+                  x = runif(1, 2, 9), 
+                  y = runif(1, 6, 7)) %>%
+  st_as_sf(coords = c("x", "y")) %>%
+  st_buffer(dist = c(0.75, 1.00, 1.25))
+
+# Plot
+ggplot() +
+  # Plot "sky" polygon
+  geom_sf(data = container_sky,
+          color = NA,
+          fill = col_palette[sample.int(10, 1)]) +
+  # Plot "sun"
+  geom_sf(data = sun[3,],
+          color = "black",
+          fill = col_palette[2]) +
+  geom_sf(data = sun[2,],
+          color = "black",
+          fill = col_palette[3]) +
+  geom_sf(data = sun[1,],
+          color = "black",
+          fill = col_palette[4]) +
+  # Plot "sea" polygon
+  geom_sf(data = container_sea_2,
+          aes(fill = id),
+          color = NA) +
+  # # Plot "Waves"
+  # geom_textpath(data = df_lines_text,
+  #               aes(x,
+  #                   y, 
+  #                   label = text,
+  #                   color = y), 
+  #               #color = "white",
+  #               size = 4,
+  #               vjust = 1, 
+  #               text_only = TRUE) +
+  scale_color_gradientn(colors = col_palette) +
+  scale_fill_gradientn(colors = rev(col_palette)) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("wavescapes-atentado.png")
+```
+
+
+Plot with sea split sequentially:
+```{r}
+# Color palette
+col_palette <- mex.brewer("Revolucion")
+
+# Create a sun
+sun <- data.frame(disk = 1:3,
+                  x = runif(1, 2, 9), 
+                  y = runif(1, 6, 7)) %>%
+  st_as_sf(coords = c("x", "y")) %>%
+  st_buffer(dist = c(0.75, 1.00, 1.25))
+
+# Plot
+ggplot() +
+  # Plot "sky" polygon
+  geom_sf(data = container_sky,
+          color = NA,
+          fill = col_palette[sample.int(10, 1)]) +
+  # Plot "sun"
+  geom_sf(data = sun[3,],
+          color = "black",
+          fill = col_palette[2]) +
+  geom_sf(data = sun[2,],
+          color = "black",
+          fill = col_palette[3]) +
+  geom_sf(data = sun[1,],
+          color = "black",
+          fill = col_palette[4]) +
+  # Plot "sea" polygon
+  geom_sf(data = container_sea_2,
+          aes(fill = id),
+          color = NA) +
+  # # Plot "Waves"
+  # geom_textpath(data = df_lines_text,
+  #               aes(x,
+  #                   y, 
+  #                   label = text,
+  #                   color = y), 
+  #               #color = "white",
+  #               size = 4,
+  #               vjust = 1, 
+  #               text_only = TRUE) +
+  scale_color_gradientn(colors = col_palette) +
+  scale_fill_gradientn(colors = rev(col_palette)) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("wavescapes-revolucion.png")
+```

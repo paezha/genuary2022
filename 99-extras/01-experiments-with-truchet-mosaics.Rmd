@@ -1,0 +1,825 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(ggnewscale)
+library(sf)
+library(tidyverse)
+library(truchet)
+```
+
+
+Create a truchet tile:
+```{r}
+tile_1 <- st_truchet_p(type = "d")
+```
+
+Create mosaic:
+```{r}
+mosaic <- st_truchet_ms(tile_1)
+```
+
+Extract mosaic:
+```{r}
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+```
+
+```{r}
+mosaic <- mosaic %>%
+  mutate(id = 1:n())
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data = mosaic[28,])
+```
+
+Sample points:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 1), 
+                                                   size = 2500))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_sf(data = mosaic) +
+  geom_sf(data = pts)
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_sf(data = mosaic) +
+  geom_sf(data = pts %>%
+            filter(id == 16))
+```
+
+Voronoi polygons:
+```{r}
+v <- st_voronoi(pts %>% 
+                  filter(id == 16) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == 16)) %>%
+  st_sf() %>%
+  mutate(id = 16,
+         color = sample.int(10, n(), replace = TRUE))
+
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_sf(data = v)
+```
+
+Now do for all polygons:
+```{r}
+v <- data.frame()
+p_id <- mosaic %>%
+  filter(color == 1) %>%
+  pull(id)
+
+count <- 0
+
+for(i in p_id){
+  count <- count +1
+  v <- rbind(v,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+st_agr(v) < "constant"
+
+v <- cbind(v, 
+           v %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_sf(data = v %>%
+            mutate(color = sample.int(5, # Random colors across the board
+                                      n(), 
+                                      replace = TRUE) + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = 1 - (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)))
+```
+
+Make pretty:
+```{r}
+ggplot() +
+  geom_sf(data = container,
+          fill = "white") +
+  geom_sf(data = v %>%
+            mutate(color = sample.int(5, # Random colors across the board
+                                      n(), 
+                                      replace = TRUE) + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = 1 - (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = color),
+          color = "white") + 
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+## Test on a different mosaic:
+
+Create a truchet tile:
+```{r}
+tile_1 <- st_truchet_p(type = "d")
+```
+
+Create mosaic:
+```{r}
+mosaic <- st_truchet_ms(tile_1, xlim = c(1, 6), ylim = c(1, 6))
+```
+
+Extract mosaic:
+```{r}
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+```
+
+Add ids to mosaic elements:
+```{r}
+mosaic <- mosaic %>%
+  mutate(id = 1:n())
+```
+
+Sample points:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 1), 
+                                                   size = 500))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 1) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count +1
+  v <- rbind(v,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v <- cbind(v, 
+           v %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Make pretty:
+```{r}
+col_palette <- MexBrewer::mex.brewer("Frida", n = 10)
+
+ggplot() +
+  geom_sf(data = container,
+          fill = "white",
+          color = NA) +
+  geom_sf(data = v %>%
+            mutate(color = color + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = 1 - (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)),
+          color = "white") + 
+  scale_fill_manual(values = col_palette) +
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+## Layer a second set of voronoi polygons
+
+Sample points:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 2), 
+                                                   size = 500))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v_2 <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 2) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count + 1
+  v_2 <- rbind(v_2,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v_2 <- cbind(v_2, 
+           v_2 %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Make pretty:
+```{r}
+col_palette <- MexBrewer::mex.brewer("Frida", n = 10)
+col_palette_2 <- MexBrewer::mex.brewer("Aurora", n = 10)
+
+ggplot() +
+  geom_sf(data = v %>%
+            mutate(color = color + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = 1 - (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)),
+          color = "white",
+          size = 0.1) + 
+   scale_fill_manual(values = col_palette) +
+  new_scale("fill") +
+  geom_sf(data = v_2 %>%
+            mutate(color = color + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)),
+          color = "white",
+          size = 0.1) + 
+  scale_fill_manual(values = col_palette_2) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave("truchet-voronoi-frida-aurora.png")
+```
+
+## Change the tiles
+
+Create a truchet tile:
+```{r}
+tile_1 <- st_truchet_p(type = "f")
+```
+
+Create mosaic:
+```{r}
+mosaic <- st_truchet_ms(tile_1, 
+                        xlim = c(1, 6), 
+                        ylim = c(1, 6))
+```
+
+Extract mosaic:
+```{r}
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+```
+
+Add ids to mosaic elements:
+```{r}
+mosaic <- mosaic %>%
+  mutate(id = 1:n())
+```
+
+Sample points for first part of the mosaic:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 1), 
+                                                   size = 500))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 1) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count +1
+  v <- rbind(v,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v <- cbind(v, 
+           v %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Sample points for complement of mosaic:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 2), 
+                                                   size = 1000))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v_2 <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 2) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count + 1
+  v_2 <- rbind(v_2,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v_2 <- cbind(v_2, 
+           v_2 %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Make pretty:
+```{r}
+col_palette <- MexBrewer::mex.brewer("Concha", n = 10)
+col_palette_2 <- MexBrewer::mex.brewer("Aurora", n = 10)
+
+ggplot() +
+  geom_sf(data = v %>%
+            mutate(color = color + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = 1 - (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)),
+          color = "white",
+          size = 0.1) + 
+   scale_fill_manual(values = col_palette) +
+  new_scale("fill") +
+  geom_sf(data = v_2 %>%
+            mutate(color = color + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)),
+          color = "white",
+          size = 0.1) + 
+  scale_fill_manual(values = col_palette_2) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave("truchet-voronoi-concha-aurora.png")
+```
+
+## MORE!
+
+Create a truchet tile:
+```{r}
+tile_1 <- st_truchet_p(type = "-")
+tile_2 <- st_truchet_p(type = "-", scale_p = 1/2)
+```
+
+Create mosaic:
+```{r}
+mosaic <- st_truchet_ms(tile_1, tile_2,
+                        xlim = c(1, 4), 
+                        ylim = c(1, 4))
+```
+
+Extract mosaic:
+```{r}
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+```
+
+Add ids to mosaic elements:
+```{r}
+mosaic <- mosaic %>%
+  mutate(id = 1:n())
+```
+
+Sample points for first part of the mosaic:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 1), 
+                                                   size = 2000))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 1) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count +1
+  v <- rbind(v,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v <- cbind(v, 
+           v %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Sample points for complement of mosaic:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 2), 
+                                                   size = 1000))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v_2 <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 2) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count + 1
+  v_2 <- rbind(v_2,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v_2 <- cbind(v_2, 
+           v_2 %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Make pretty:
+```{r}
+col_palette <- MexBrewer::mex.brewer("Frida", n = 10)
+col_palette_2 <- MexBrewer::mex.brewer("Tierra", n = 10)
+
+ggplot() +
+  geom_sf(data = mosaic %>%
+            filter(color == 1),
+          color = NA,
+          fill = col_palette[7]) +
+  geom_sf(data = mosaic %>%
+            filter(color == 2),
+          color = NA,
+          fill = col_palette_2[7]) +
+  #geom_sf(data = v %>%
+  #          mutate(color = color + 
+  #                   rbinom(n(), # Random colors with a probability trend in function of X * Y
+  #                          5, 
+  #                          prob = 1 - (X * Y)/(max(X) * max(Y))),
+  #                 color = round(color)),
+  #        aes(fill = factor(color)),
+  #        color = "white",
+  #        size = 0.1) + 
+   scale_fill_manual(values = col_palette) +
+  new_scale("fill") +
+  geom_sf(data = v_2 %>%
+            mutate(color = color + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)),
+          color = "white",
+          size = 0.2) + 
+  scale_fill_manual(values = col_palette_2) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave("truchet-voronoi-frida-tierra.png")
+```
+
+## AND MORE!
+
+Create a truchet tile:
+```{r}
+tile_1 <- st_truchet_p(type = "f")
+tile_2 <- st_truchet_p(type = "f", scale_p = 1/2)
+```
+
+Create mosaic:
+```{r}
+mosaic <- st_truchet_ms(tile_1, tile_2,
+                        xlim = c(1, 4), 
+                        ylim = c(1, 4))
+```
+
+Extract mosaic:
+```{r}
+container <- mosaic[["container"]]
+mosaic <- mosaic[["mosaic"]]
+```
+
+Add ids to mosaic elements:
+```{r}
+mosaic <- mosaic %>%
+  mutate(id = 1:n())
+```
+
+Sample points for first part of the mosaic:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 1), 
+                                                   size = 2000))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 1) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count +1
+  v <- rbind(v,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v <- cbind(v, 
+           v %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Sample points for complement of mosaic:
+```{r}
+pts <- data.frame(geometry = st_geometry(st_sample(mosaic %>%
+                                                     filter(color == 2), 
+                                                   size = 1000))) %>%
+  st_as_sf() %>%
+  st_set_agr("constant")
+```
+
+Id points:
+```{r}
+pts <- pts %>%
+  st_join(mosaic %>% 
+            select(id))
+```
+
+Voronoi polygons:
+```{r}
+# Initialize data frame for voronoi polygons
+v_2 <- data.frame()
+
+# Filter elements of the mosaic by color
+p_id <- mosaic %>%
+  filter(color == 2) %>%
+  pull(id)
+
+# Initialize count for colors
+count <- 0
+
+for(i in p_id){
+  count <- count + 1
+  v_2 <- rbind(v_2,
+             st_voronoi(pts %>% 
+                  filter(id == i) %>%
+                  st_union()) %>% 
+  st_collection_extract() %>%
+  st_intersection(mosaic %>% 
+                    filter(id == i)) %>%
+  st_sf() %>%
+  mutate(id = i,
+         color = sample.int(5, n(), replace = TRUE)))
+}
+
+v_2 <- cbind(v_2, 
+           v_2 %>% 
+             st_centroid() %>%
+             st_coordinates())
+```
+
+Make pretty:
+```{r}
+col_palette <- MexBrewer::mex.brewer("Concha", n = 10)
+col_palette_2 <- MexBrewer::mex.brewer("Tierra", n = 10)
+
+ggplot() +
+  geom_sf(data = mosaic %>%
+            filter(color == 1),
+          color = NA,
+          fill = col_palette[7]) +
+  geom_sf(data = mosaic %>%
+            filter(color == 2),
+          color = NA,
+          fill = col_palette_2[7]) +
+  #geom_sf(data = v %>%
+  #          mutate(color = color + 
+  #                   rbinom(n(), # Random colors with a probability trend in function of X * Y
+  #                          5, 
+  #                          prob = 1 - (X * Y)/(max(X) * max(Y))),
+  #                 color = round(color)),
+  #        aes(fill = factor(color)),
+  #        color = "white",
+  #        size = 0.1) + 
+   scale_fill_manual(values = col_palette) +
+  new_scale("fill") +
+  geom_sf(data = v_2 %>%
+            mutate(color = color + 
+                     rbinom(n(), # Random colors with a probability trend in function of X * Y
+                            5, 
+                            prob = (X * Y)/(max(X) * max(Y))),
+                   color = round(color)),
+          aes(fill = factor(color)),
+          color = "white",
+          size = 0.2) + 
+  scale_fill_manual(values = col_palette_2) +
+  theme_void() + 
+  theme(legend.position = "none")
+
+ggsave("truchet-voronoi-concha-tierra.png")
+```
+

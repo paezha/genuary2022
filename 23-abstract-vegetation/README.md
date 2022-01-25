@@ -44,7 +44,8 @@ Here I create a few figures with a single node and dense polygons. This
 is basically Casadebaig’s example with just some minor changes in the
 inputs. Instead of using the `render_node()` function, I extract the
 rendering commands to have more control on the aspect of the plot. I
-will also try different color palettes from my package [{MexBrewer}]().
+will also try different color palettes from my package
+[{MexBrewer}](https://github.com/paezha/MexBrewer).
 
 ## Atentado
 

@@ -210,3 +210,11 @@ great chance to look into it. These are the results.
 ![](23-abstract-vegetation/abstract-vegetation-atentado.png)
 
 ![](23-abstract-vegetation/abstract-vegetation-tierra.png)
+
+## Day 25: Perspective
+
+This is just a simple experiment with two-point perspective: I must
+admit that I did not know the trigonometry involved, so it was a good
+refresher of trig relations.
+
+![](25-perspective/perspective-bw.png)

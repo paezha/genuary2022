@@ -424,3 +424,114 @@ ggsave(file = "perspective-bw.png",
        scale = 1,
        units="in")
 ```
+
+Plot, `Frida` style:
+
+``` r
+col_palette <- mex.brewer("Frida")
+
+ggplot() +
+  geom_sf(data = container_polygon,
+          fill= col_palette[7]) + 
+  geom_sf(data = plines %>%
+            filter(id == max(id) - 2), 
+          color = col_palette[1],
+          linetype = "dotted",
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(id != max(id) - 2),
+          color = col_palette[1],
+          fill= col_palette[7],
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(id == max(id) - 2),
+          color = col_palette[7],
+          fill= col_palette[1], 
+          size = 0.5) + 
+  theme_void()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+``` r
+ggsave(file = "perspective-frida.png",
+       width = 7, 
+       height = 7,
+       dpi = 300, 
+       scale = 1,
+       units="in")
+```
+
+Plot, `Aurora` style:
+
+``` r
+col_palette <- mex.brewer("Aurora")
+
+ggplot() +
+  geom_sf(data = container_polygon,
+          fill= col_palette[7]) + 
+  geom_sf(data = plines %>%
+            filter(id == max(id) - 2), 
+          color = col_palette[1],
+          linetype = "dotted",
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(id != max(id) - 2),
+          color = col_palette[1],
+          fill= col_palette[7],
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(id == max(id) - 2),
+          color = col_palette[7],
+          fill= col_palette[1], 
+          size = 0.5) + 
+  theme_void()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
+``` r
+ggsave(file = "perspective-aurora.png",
+       width = 7, 
+       height = 7,
+       dpi = 300, 
+       scale = 1,
+       units="in")
+```
+
+Plot, `Concha` style:
+
+``` r
+col_palette <- mex.brewer("Concha")
+
+ggplot() +
+  geom_sf(data = container_polygon,
+          fill= col_palette[7]) + 
+  geom_sf(data = plines %>%
+            filter(id == max(id) - 2), 
+          color = col_palette[1],
+          linetype = "dotted",
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(id != max(id) - 2),
+          color = col_palette[1],
+          fill= col_palette[7],
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(id == max(id) - 2),
+          color = col_palette[7],
+          fill= col_palette[1], 
+          size = 0.5) + 
+  theme_void()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+``` r
+ggsave(file = "perspective-concha.png",
+       width = 7, 
+       height = 7,
+       dpi = 300, 
+       scale = 1,
+       units="in")
+```

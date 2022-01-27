@@ -321,10 +321,10 @@ for(i in angles){
   junk <- isotower(theta_1 = pi/i, theta_2 = pi/(i + 0.5), theta_3 = pi/10, theta_4 = pi/14)
   towers <- rbind(towers,
                   junk[["tower"]] %>%
-                    mutate(id = count))
+                    mutate(n = count))
   plines <- rbind(plines,
                   junk[["plines"]] %>%
-                    mutate(id = count))
+                    mutate(n = count))
 }
 ```
 
@@ -334,17 +334,17 @@ ggplot() +
   geom_sf(data = container_polygon,
           fill= "black") + 
   geom_sf(data = plines %>%
-            filter(id == max(id) - 2), 
+            filter(n == max(n) - 2), 
           color = "white",
           linetype = "dotted",
           size = 0.25) + 
   geom_sf(data = towers %>%
-            filter(id != max(id) - 2),
+            filter(n != max(n) - 2),
           color = "white",
           fill= "black",
           size = 0.25) + 
   geom_sf(data = towers %>%
-            filter(id == max(id) - 2),
+            filter(n == max(n) - 2),
           color = "black",
           fill= "white", 
           size = 0.5) + 
@@ -361,3 +361,177 @@ ggsave(file = "perspective-bw.png",
        scale = 1,
        units="in")
 ```
+
+
+Plot, `Frida` style:
+```{r}
+col_palette <- mex.brewer("Frida")
+
+ggplot() +
+  geom_sf(data = container_polygon,
+          fill= col_palette[7]) + 
+  geom_sf(data = plines %>%
+            filter(n == max(n) - 2), 
+          color = col_palette[1],
+          linetype = "dotted",
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(n != max(n) - 2),
+          color = col_palette[1],
+          fill= col_palette[7],
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(n == max(n) - 2),
+          color = col_palette[7],
+          fill= col_palette[1], 
+          size = 0.5) + 
+  theme_void()
+
+ggsave(file = "perspective-frida.png",
+       width = 7, 
+       height = 7,
+       dpi = 300, 
+       scale = 1,
+       units="in")
+```
+
+Plot, `Aurora` style:
+```{r}
+col_palette <- mex.brewer("Aurora")
+
+ggplot() +
+  geom_sf(data = container_polygon,
+          fill= col_palette[7]) + 
+  geom_sf(data = plines %>%
+            filter(n == max(n) - 2), 
+          color = col_palette[1],
+          linetype = "dotted",
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(n != max(n) - 2),
+          color = col_palette[1],
+          fill= col_palette[7],
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(n == max(n) - 2),
+          color = col_palette[7],
+          fill= col_palette[1], 
+          size = 0.5) + 
+  theme_void()
+
+ggsave(file = "perspective-aurora.png",
+       width = 7, 
+       height = 7,
+       dpi = 300, 
+       scale = 1,
+       units="in")
+
+```
+
+Plot, `Concha` style:
+```{r}
+col_palette <- mex.brewer("Concha")
+
+ggplot() +
+  geom_sf(data = container_polygon,
+          fill= col_palette[7]) + 
+  geom_sf(data = plines %>%
+            filter(n == max(n) - 2), 
+          color = col_palette[1],
+          linetype = "dotted",
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(n != max(n) - 2),
+          color = col_palette[1],
+          fill= col_palette[7],
+          size = 0.25) + 
+  geom_sf(data = towers %>%
+            filter(n == max(n) - 2),
+          color = col_palette[7],
+          fill= col_palette[1], 
+          size = 0.5) + 
+  theme_void()
+
+ggsave(file = "perspective-concha.png",
+       width = 7, 
+       height = 7,
+       dpi = 300, 
+       scale = 1,
+       units="in")
+```
+
+
+## CUBES
+
+More tricky than simply prisms: all sides must be equal! Check this out: https://www.youtube.com/watch?v=oO3LWWV47hU
+
+It starts with the horizon and a vertical line, which I will place at random.
+
+First the two points of view at a selected height and width (separation, starting from zero):
+```{r}
+height <- 3
+width <- 12
+
+# Point of view 1
+pv1 <- data.frame(id = "pv1", 
+                  geometry = st_point(x = c(0, height)) %>%
+                    st_geometry()) %>% 
+  st_sf()
+
+# Point of view 2
+pv2 <- data.frame(id = "pv2", 
+                  geometry = st_point(x = c(width, height)) %>%
+                    st_geometry()) %>% 
+  st_sf()
+
+```
+
+Now the horizon line:
+```{r}
+horizon <- pv1 %>%
+  st_union(pv2 %>% 
+             st_geometry()) %>%
+  st_cast(to = "LINESTRING") %>%
+  mutate(id = "horizon")
+```
+
+Vertical line:
+```{r}
+x <- runif(1, 0, width)
+v <- matrix(c(x, height, 
+                    x, height - sqrt(x * (width -x))),
+                  ncol = 2,
+                  byrow = TRUE)
+
+# Convert coordinates to a string and then to simple features
+v <- data.frame(id = "v",
+                      geometry = st_linestring(v) %>% 
+                        st_sfc()) %>% 
+  st_as_sf()
+```
+
+Alternatively? Point b:
+```{r}
+pb <- data.frame(id = "pb", 
+                  geometry = st_point(x = c(x, 
+                                            height - sqrt(x * (width -x)))) %>%
+                    st_geometry()) %>% 
+  st_sf()
+
+```
+
+
+
+Plot:
+```{r}
+ggplot() +
+  geom_sf(data = horizon) +
+  geom_sf(data = pv1) +
+  geom_sf(data = pv2) + 
+  geom_sf(data = pb, color = "red") +
+  geom_sf(data = v)
+```
+
+
+rot = function(a) matrix(c(cos(a), sin(a), -sin(a), cos(a)), 2, 2)
+

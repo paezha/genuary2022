@@ -218,3 +218,17 @@ admit that I did not know the trigonometry involved, so it was a good
 refresher of trig relations.
 
 ![](25-perspective/perspective-bw.png)
+
+## Day 27: Hexadecimal colors
+
+The prompt give five colors to work with: : #2E294E, #541388, #F1E9DA,
+#FFD400, #D90368.
+
+I was not super-inspired by the colors, so used the opportunity to
+improve package [{truchet}](https://paezha.github.io/truchet/) to
+assemble mosaics with non-random placement of tiles. The background uses
+two of the colors, the mosaic three. The noise in the background I
+copied from Jaquie Tran’s
+[code](https://github.com/jacquietran/genuary_2022/blob/main/R/20220125.R).
+
+![](27-hex-colors/hex-colors-1.png)

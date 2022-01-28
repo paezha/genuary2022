@@ -7,6 +7,7 @@ Here I work with multiscale tiles using a pre-determined tile pattern as opposed
 
 Load packages:
 ```{r}
+library(ambient)
 library(ggnewscale)
 library(sf)
 library(tidyverse)
@@ -26,7 +27,7 @@ c <- c(10, 10)
 
 # Radius
 r1 <- 3.4
-r2 <- 10.4
+r2 <- 15
 ```
 
 ```{r}
@@ -72,8 +73,8 @@ ggplot() +
 
 Create truchet tiles:
 ```{r}
-t1 <- st_truchet_p(type = "f")
-t2 <- st_truchet_p(type = "f", scale_p = 1/2)
+t1 <- st_truchet_p(type = "-")
+t2 <- st_truchet_p(type = "-", scale_p = 1/2)
 ```
 
 Create mosaic:
@@ -157,3 +158,37 @@ ggplot() +
 #ggsave("truchet-voronoi-concha-tierra.png")
 ```
 
+
+
+## Make pretty alternative 3:
+
+Create noisy background:
+```{r}
+perlin_noise <- long_grid(
+  x = seq(xlim[1] - 1, xlim[2], length.out = 1000),
+  y = seq(ylim[1] -1, ylim[2], length.out = 1000)) %>%
+  mutate(
+    noise = fracture(
+      gen_perlin, fbm, octaves = 8, frequency = 80, x = x, y = y))
+```
+
+Set the noise gradient:
+```{r}
+noise_gradient <- (grDevices::colorRampPalette(c("white", "black")))(50)
+```
+
+```{r}
+ggplot() +
+  geom_raster(data = perlin_noise, aes(x, y, fill = noise)) +
+  scale_fill_gradientn(colours = noise_gradient) +
+  ggnewscale::new_scale_fill() +
+  geom_sf(data = mosaic %>%
+            st_intersection(bf),
+          aes(fill = factor(color)),
+          color = NA) +
+  scale_fill_manual(values = c("black", "white")) +
+  theme_void() +
+  theme(legend.position = "none")
+
+#ggsave("truchet-voronoi-concha-tierra.png")
+```

@@ -232,3 +232,9 @@ copied from Jaquie Tran’s
 [code](https://github.com/jacquietran/genuary_2022/blob/main/R/20220125.R).
 
 ![](27-hex-colors/hex-colors-1.png)
+
+## Day 27: Hexadecimal colors
+
+Self-portrait made with the first 80,447 digits of pi.
+
+![](28-self-portrait/me-pi-tierra.png)

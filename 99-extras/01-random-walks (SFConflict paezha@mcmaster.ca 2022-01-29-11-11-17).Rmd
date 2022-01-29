@@ -1,0 +1,248 @@
+---
+title: "Experiments with Random Walks"
+output: html_notebook
+---
+
+In this notebook I experiment with random walks.
+
+Load packages:
+```{r}
+library(ggnewscale)
+library(MexBrewer)
+library(sf)
+library(tidyverse)
+```
+
+
+This example I took from here: https://mikegruz.github.io/articles/2016-12/random-walks:
+```{r}
+n = 5000
+
+d2.rand.walk = data.frame(
+  x = cumsum(sample(c(-1, 1),
+                            size=n,
+                            replace=TRUE)),
+  y = cumsum(sample(c(-1, 1), 
+                            size=n, 
+                            replace=TRUE)))
+
+
+ggplot(d2.rand.walk, aes(x=x, y=y)) + 
+  geom_path() +  
+  coord_equal() +
+  theme_minimal()
+```
+
+This is my version to allow for steps to happen in more directions:
+```{r}
+n = 5000
+
+d2.rand.walk = data.frame(
+  x = cumsum(1 * cos(sample(seq(0,
+                                7/4 * pi, 
+                                by = 1/4 * pi), 
+                            size=n, 
+                            replace=TRUE))),
+  y = cumsum(1 * sin(sample(seq(0,
+                                7/4 * pi, 
+                                by = 1/4 * pi), 
+                            size=n, replace=TRUE))))
+
+
+ggplot(d2.rand.walk, aes(x=x, y=y)) + 
+  geom_path() +  
+  coord_equal() +
+  theme_minimal()
+```
+Simulating the whole random walk simultaneously is quick, but offers no control over its path. But I am interested in a random walk that is limited to a polygon. 
+
+Here is an example of a heart-shaped polygon given by parametric equations:
+```{r}
+df <- data.frame(t = seq(0, 2 * pi - 2 * pi/100, 2 * pi/100))
+
+df<- df %>%
+  mutate(x	=	16 * sin(t)^3,
+         y	=	13 * cos(t) - 5 * cos(2 * t) - 2 * cos(3 * t) - cos(4*t))
+
+df <- rbind(df,
+            slice_head(df))
+
+ggplot() +
+  geom_path(data = df,
+            aes(x = x,
+                y = y)) +
+  coord_equal()
+```
+
+Convert the coordinates to sf to be able to check whether a point is inside or outside of the polygon:
+```{r}
+heart <- matrix(c(df$x, 
+                  df$y), 
+                ncol = 2,
+                byrow = FALSE)
+
+heart <- st_polygon(list(heart))
+```
+
+Create a container polygon:
+```{r}
+
+container <- matrix( c(bbox[1] - 2, bbox[2] - 2,
+                       bbox[1] - 2, bbox[4] + 2,
+                       bbox[3] + 2, bbox[4] + 2,
+                       bbox[3] + 2, bbox[2] - 2,
+                       bbox[1] - 2, bbox[2] - 2),
+                     ncol = 2,
+                     byrow = TRUE)
+
+container <- st_polygon(list(container))
+```
+
+Carve out the inner polygon:
+```{r}
+container <- container %>%
+  st_difference(heart)
+```
+
+Simulate a random walk _in_ the heart-shaped polygon:
+```{r}
+# Length of walk
+n <- 7500
+
+# Step length
+step_length <- 1
+
+
+# Starting point:
+rw <- data.frame(x = 0, 
+                 y = -14)
+
+for(i in 1:n){
+  
+  # Initialize search for next candidate step
+  candidate_step <- data.frame(x = step_length * cos(sample(seq(0,
+                                                                7/4 * pi,
+                                                                by = 1/4 * pi),
+                                                            1)),
+                               y = step_length * sin(sample(seq(0,
+                                                                7/4 * pi,
+                                                                by = 1/4 * pi),
+                                                            1)))
+
+  # candidate_step <- data.frame(x = sample(c(-step_length, step_length), 1),
+  #                              y = sample(c(-step_length,step_length), 1))
+  
+  # Check whether position with candidate step is within polygon
+  candidate_position <- slice_tail(rw) %>%
+    mutate(x = x + candidate_step$x,
+           y = y + candidate_step$y) 
+  
+  inside_check <- st_within(candidate_position %>% 
+               st_as_sf(coords = c("x", "y")),
+               heart,
+               sparse = FALSE) %>% 
+     as.vector()
+  
+  # If inside bind to to random walk, otherwise reverse position
+  if(inside_check){
+    rw <- rbind(rw,
+                candidate_position)
+  }else{
+    reverse_position <- slice_tail(rw) %>%
+    mutate(x = x - candidate_step$x,
+           y = y - candidate_step$y)
+    
+    rw <- rbind(rw,
+                reverse_position)
+  }
+}
+```
+
+Simulate a random walk _outside_ the heart-shaped polygon but _inside_ the frame:
+```{r}
+# Length of walk
+n <- 12500
+
+# Step length
+step_length <- 1
+
+
+# Starting point:
+rw_2 <- data.frame(x = -10, 
+                 y = -10)
+
+for(i in 1:n){
+  
+  # Initialize search for next candidate step
+  candidate_step <- data.frame(x = step_length * cos(sample(seq(0,
+                                                                7/4 * pi,
+                                                                by = 1/4 * pi),
+                                                            1)),
+                               y = step_length * sin(sample(seq(0,
+                                                                7/4 * pi,
+                                                                by = 1/4 * pi),
+                                                            1)))
+
+  # candidate_step <- data.frame(x = sample(c(-step_length, step_length), 1),
+  #                              y = sample(c(-step_length,step_length), 1))
+  
+  # Check whether position with candidate step is within polygon
+  candidate_position <- slice_tail(rw_2) %>%
+    mutate(x = x + candidate_step$x,
+           y = y + candidate_step$y) 
+  
+  inside_check <- st_within(candidate_position %>% 
+               st_as_sf(coords = c("x", "y")),
+               container,
+               sparse = FALSE) %>% 
+     as.vector()
+  
+  # If inside bind to to random walk, otherwise reverse position
+  if(inside_check){
+    rw_2 <- rbind(rw_2,
+                candidate_position)
+  }else{
+    reverse_position <- slice_tail(rw_2) %>%
+    mutate(x = x - candidate_step$x,
+           y = y - candidate_step$y)
+    
+    rw_2 <- rbind(rw_2,
+                reverse_position)
+  }
+}
+```
+
+
+Plot random walk:
+```{r}
+col_palette <- mex.brewer("Alacena")[6:10]
+col_palette_2 <- mex.brewer("Alacena")[1:5]
+
+bbox <- st_bbox(heart)
+
+ggplot() +
+  geom_sf(data = heart) +
+   geom_rect(aes(xmin = bbox[1] - 2, 
+                 xmax = bbox[3] + 2, 
+                 ymin = bbox[2] - 2 , 
+                 ymax = bbox[4] + 2),
+             fill = "black") +
+  geom_path(data = rw_2, 
+       aes(x = x, 
+           y = y,
+           color = x - y)) +
+  scale_color_gradientn(colors = col_palette) +
+  new_scale_color() +
+  geom_path(data = rw, 
+        aes(x = x, 
+            y = y,
+            color = x - y)) +
+  scale_color_gradientn(colors = col_palette_2) +
+  #coord_equal() + 
+  theme_void() + 
+  theme(legend.position = "none")
+```
+
+
+
+

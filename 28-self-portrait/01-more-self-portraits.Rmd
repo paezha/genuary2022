@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+I am lifting this code from Georgios Karamanis' [repo](https://github.com/gkaramanis/aRtist/blob/main/genuary/2022/2022-28/2022-28.R)
+
+Load packages:
+```{r load-packages, warning=FALSE, message=FALSE}
+library(magick)
+library(MexBrewer)
+library(tidyverse)
+library(truchet)
+```
+
+## Process image
+
+Read the image using `magick::image_read()`:
+```{r}
+#me <- image_read("me_lg.jpg")
+me <- image_read("selfie.jpg")
+```
+
+Check the size of the image: 
+```{r}
+image_info(me)
+```
+
+Scale image:
+```{r}
+me_scaled <- me %>% 
+  image_scale("500")
+```
+
+Change the colorspace to gray:
+```{r}
+me_scaled <- me_scaled %>% 
+  image_convert(colorspace = "gray")
+```
+
+This is the image after changing to grayscale:
+```{r}
+magick::image_ggplot(me_scaled)
+```
+
+Create array and number rows and columns:
+```{r}
+img_array <- drop(as.integer(me_scaled[[1]]))
+rownames(img_array) <- 1:nrow(img_array)
+colnames(img_array) <- ncol(img_array):1
+```
+
+Create data frame from array and rename columns
+```{r}
+img_df <- as.data.frame.table(img_array) %>% 
+  `colnames<-`(c("y", "x", "b")) %>%
+  mutate(x = as.numeric(x),
+         y = - (as.numeric(y) - image_info(me_scaled)$height))
+```
+
+Sample from the image:
+```{r}
+img_df <- img_df %>% filter(log(b) < 4.5)
+```
+
+```{r}
+img_df <- img_df %>%
+  mutate(scale_p = case_when(log(b) <= 4.0 ~ 1/2,
+                             log(b) >  4.0 ~ 1))
+```
+
+
+
+Create tiles:
+```{r}
+tiles_1 <- st_truchet_p(type = "-")
+tiles_2 <- st_truchet_p(type = "-", scale_p = 1/2)
+```
+
+Assemble mosaic:
+```{r}
+df <- img_df
+mosaic <- st_truchet_ms(t1 = tiles_1, t2 = tiles_2, df = df)
+```
+

@@ -5,7 +5,8 @@ output: html_notebook
 
 Today I will use the following packages:
 ```{r load-packages, cache = FALSE, warning=FALSE, message=FALSE}
-library(geomtextpath)
+library(ggforce)
+#library(geomtextpath)
 library(lwgeom)
 library(MexBrewer)
 library(sf)
@@ -143,48 +144,118 @@ for(i in 1:length(vjust)){
 }
 ```
 
+Sea background:
+```{r}
+container_sea_2_bkg <- container_sea_2 %>%
+  mutate(geometry = st_geometry(container_sea_2) + c(-0.1, 0.05)) %>%
+  st_intersection(container_polygon %>% 
+                    st_geometry())
+  
+```
+```{r}
+container_sea <- rbind(container_sea_2 %>%
+                         mutate(r = "foreground"),
+                       container_sea_2_bkg %>%
+                         mutate(r = "background")) %>%
+  arrange(id, r)
+```
+
+```{r}
+library(sf)
+outer = matrix(c(0,0,10,0,10,10,0,10,0,0),ncol=2, byrow=TRUE)
+hole1 = matrix(c(1,1,1,2,2,2,2,1,1,1),ncol=2, byrow=TRUE)
+hole2 = matrix(c(5,5,5,6,6,6,6,5,5,5),ncol=2, byrow=TRUE)
+pts = list(outer, hole1, hole2)
+pl1 = st_geometry(container_sea_2)
+
+plot(pl1)
+```
+```{r}
+pl2 <- st_multipolygon(lapply(pl1, function(x) x[1]))
+
+plot(pl2)
+```
+
+
+```{r}
+ggplot() + 
+  geom_sf(data = container_sea %>% arrange(id, r), aes(fill = factor(r)))
+```
+
 Plot with sea split sequentially:
 ```{r}
 # Color palette
 col_palette <- mex.brewer("Atentado")
 
 # Create a sun
-sun <- data.frame(disk = 1:3,
-                  x = runif(1, 2, 9), 
-                  y = runif(1, 6, 7)) %>%
-  st_as_sf(coords = c("x", "y")) %>%
-  st_buffer(dist = c(0.75, 1.00, 1.25))
+# Position of sun
+sun_coords <- c(x = runif(1, 2, 9), 
+                  y = runif(1, 6, 7))
+# Rays
+df_sunrays <- data.frame(angle = seq(0, 2*pi, by = 2 * pi / sample(c(6, 8, 10), 1))) %>%
+  mutate(x = sun_coords[1] + 1.1 * cos(angle),
+         y = sun_coords[2] + 1.1 * sin(angle))
 
-# Plot
-ggplot() +
+# Plot sky
+p <- ggplot() +
   # Plot "sky" polygon
   geom_sf(data = container_sky,
           color = NA,
           fill = col_palette[sample.int(10, 1)]) +
   # Plot "sun"
-  geom_sf(data = sun[3,],
-          color = "black",
-          fill = col_palette[2]) +
-  geom_sf(data = sun[2,],
-          color = "black",
-          fill = col_palette[3]) +
-  geom_sf(data = sun[1,],
-          color = "black",
-          fill = col_palette[4]) +
-  # Plot "sea" polygon
-  geom_sf(data = container_sea_2,
+  with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 1.15, 1.45)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[2]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 0.9, 1.1)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[3]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 0.65, 0.85)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[4]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(data = df_sunrays,
+             aes(x0 = x, y0 = y, sides = 3,
+                 angle = angle + pi/6, r = 0.2),
+             fill = col_palette[4]),
+             colour = "white",
+             x_offset = -2,
+             y_offset = -1,
+             sigma = 0)
+
+# Add waves
+for(i in 1:nrow(container_sea_2)){
+  p <- p + 
+    with_shadow(geom_sf(data = container_sea_2[i,],
           aes(fill = id),
-          color = NA) +
-  # # Plot "Waves"
-  # geom_textpath(data = df_lines_text,
-  #               aes(x,
-  #                   y, 
-  #                   label = text,
-  #                   color = y), 
-  #               #color = "white",
-  #               size = 4,
-  #               vjust = 1, 
-  #               text_only = TRUE) +
+          color = NA),
+             colour = "white",
+             x_offset = -4,
+             y_offset = -1,
+          sigma = 0)
+}
+
+# Finishing details
+p <- p +
   scale_color_gradientn(colors = col_palette) +
   scale_fill_gradientn(colors = rev(col_palette)) +
   theme_void() +
@@ -193,53 +264,165 @@ ggplot() +
 ggsave("wavescapes-atentado.png")
 ```
 
-
 Plot with sea split sequentially:
 ```{r}
 # Color palette
 col_palette <- mex.brewer("Revolucion")
 
 # Create a sun
-sun <- data.frame(disk = 1:3,
-                  x = runif(1, 2, 9), 
-                  y = runif(1, 6, 7)) %>%
-  st_as_sf(coords = c("x", "y")) %>%
-  st_buffer(dist = c(0.75, 1.00, 1.25))
+# Position of sun
+sun_coords <- c(x = runif(1, 2, 9), 
+                  y = runif(1, 6, 7))
+# Rays
+df_sunrays <- data.frame(angle = seq(0, 2*pi, by = 2 * pi / sample(c(6, 8, 10), 1))) %>%
+  mutate(x = sun_coords[1] + 1.1 * cos(angle),
+         y = sun_coords[2] + 1.1 * sin(angle))
 
-# Plot
-ggplot() +
+# Plot sky
+p <- ggplot() +
   # Plot "sky" polygon
   geom_sf(data = container_sky,
           color = NA,
           fill = col_palette[sample.int(10, 1)]) +
   # Plot "sun"
-  geom_sf(data = sun[3,],
-          color = "black",
-          fill = col_palette[2]) +
-  geom_sf(data = sun[2,],
-          color = "black",
-          fill = col_palette[3]) +
-  geom_sf(data = sun[1,],
-          color = "black",
-          fill = col_palette[4]) +
-  # Plot "sea" polygon
-  geom_sf(data = container_sea_2,
+  with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 1.15, 1.45)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[2]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 0.9, 1.1)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[3]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 0.65, 0.85)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[4]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(data = df_sunrays,
+             aes(x0 = x, y0 = y, sides = 3,
+                 angle = angle + pi/6, r = 0.2),
+             fill = col_palette[4]),
+             colour = "white",
+             x_offset = -2,
+             y_offset = -1,
+             sigma = 0)
+
+# Add waves
+for(i in 1:nrow(container_sea_2)){
+  p <- p + 
+    with_shadow(geom_sf(data = container_sea_2[i,],
           aes(fill = id),
-          color = NA) +
-  # # Plot "Waves"
-  # geom_textpath(data = df_lines_text,
-  #               aes(x,
-  #                   y, 
-  #                   label = text,
-  #                   color = y), 
-  #               #color = "white",
-  #               size = 4,
-  #               vjust = 1, 
-  #               text_only = TRUE) +
+          color = NA),
+             colour = "white",
+             x_offset = -4,
+             y_offset = -1,
+          sigma = 0)
+}
+
+# Finishing details
+p <- p +
   scale_color_gradientn(colors = col_palette) +
   scale_fill_gradientn(colors = rev(col_palette)) +
   theme_void() +
   theme(legend.position = "none")
 
 ggsave("wavescapes-revolucion.png")
+```
+Change color palette:
+```{r}
+# Color palette
+col_palette <- mex.brewer("Alacena")
+
+# Create a sun
+# Position of sun
+sun_coords <- c(x = runif(1, 2, 9), 
+                  y = runif(1, 6, 7))
+# Rays
+df_sunrays <- data.frame(angle = seq(0, 2*pi, by = 2 * pi / sample(c(8, 10, 12), 1))) %>%
+  mutate(x = sun_coords[1] + 1.1 * cos(angle),
+         y = sun_coords[2] + 1.1 * sin(angle))
+
+# Plot sky
+p <- ggplot() +
+  # Plot "sky" polygon
+  geom_sf(data = container_sky,
+          color = NA,
+          fill = col_palette[sample.int(10, 1)]) +
+  # Plot "sun"
+  with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 1.15, 1.45)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[2]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 0.9, 1.1)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[3]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(aes(x0 = sun_coords[1] + runif(1, -0.05, 0.05),
+                 y0 = sun_coords[2] + runif(1, -0.05, 0.05),
+                 sides = sample(12:15, 1),
+                 angle = 0, r = runif(1, 0.65, 0.85)),
+             expand = unit(0.1, 'cm'), radius = unit(0.7, 'cm'),
+             fill = col_palette[4]),
+             colour = "white",
+             x_offset = -3,
+             y_offset = -2,
+             sigma = 0) +
+   with_shadow(geom_regon(data = df_sunrays,
+             aes(x0 = x, y0 = y, sides = 3,
+                 angle = angle + pi/6, r = 0.2),
+             fill = col_palette[4]),
+             colour = "white",
+             x_offset = -2,
+             y_offset = -1,
+             sigma = 0)
+
+# Add waves
+for(i in 1:nrow(container_sea_2)){
+  p <- p + 
+    with_shadow(geom_sf(data = container_sea_2[i,],
+          aes(fill = id),
+          color = NA),
+             colour = "white",
+             x_offset = -4,
+             y_offset = -1,
+          sigma = 0)
+}
+
+# Finishing details
+p <- p +
+  scale_color_gradientn(colors = col_palette) +
+  scale_fill_gradientn(colors = rev(col_palette)) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("wavescapes-alacena.png")
 ```

@@ -179,7 +179,7 @@ map2_dfr(.x = x_c, .y = y_c, ~cube_up(.x, .y)) %>%
 
 ![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
-The coordinats of the tiles are not quite what I wanted. Recreate
+The coordinates of the tiles are not quite what I wanted. Recreate
 mosaic:
 
 ``` r
@@ -220,9 +220,9 @@ Make vertical lines:
 ``` r
 line_space <- 0.15
 
-x_min <- seq(0, 10 * sqrt(3), line_space)
+x_min <- seq(-5, 15 * sqrt(3), line_space - 0.05)
 y_min <- rep(0, length(x_min))
-y_max <- rep(10 * sqrt(3), length(x_min))
+y_max <- rep(15 * sqrt(3), length(x_min))
 
 lines_v <- pmap_dfr(list(x_min, x_min, y_min, y_max), make_lines)
 
@@ -236,9 +236,9 @@ lines_v %>%
 Make horizontal lines:
 
 ``` r
-y_min <- seq(0, 10 * sqrt(3), line_space)
+y_min <- seq(-5, 15 * sqrt(3), line_space - 0.05)
 x_min <- rep(0, length(y_min))
-x_max <- rep(10 * sqrt(3), length(x_min))
+x_max <- rep(15 * sqrt(3), length(x_min))
 
 lines_h <- pmap_dfr(list(x_min, x_max, y_min, y_min), make_lines)
 
@@ -249,22 +249,43 @@ lines_h %>%
 
 ![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
-Make diagonal lines:
+Make diagonal lines (\\):
 
 ``` r
-x_min <- seq(-5, 10 * sqrt(3), line_space)
-x_max <- x_min + 10 * sqrt(3)
+height <- 10 * sqrt(3)
+x_min <- seq(-15, 25 * sqrt(3), line_space)
+y_max <- rep(height, length(x_min))
+x_max <- x_min - height * sqrt(3)
 y_min <- rep(0, length(x_min))
-y_max <- rep(10 * sqrt(3), length(x_min))
 
-lines_d <- pmap_dfr(list(x_min, x_max, y_min, y_max), make_lines)
 
-lines_d %>% 
+lines_dl <- pmap_dfr(list(x_min, x_max, y_min, y_max), make_lines)
+
+lines_dl %>% 
   ggplot() +
   geom_sf(color = "black")
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+Make diagonal lines (/):
+
+``` r
+height <- 10 * sqrt(3)
+x_min <- seq(-25, 25 * sqrt(3), line_space)
+y_max <- rep(height, length(x_min))
+x_max <- x_min + height * sqrt(3)
+y_min <- rep(0, length(x_min))
+
+
+lines_dr <- pmap_dfr(list(x_min, x_max, y_min, y_max), make_lines)
+
+lines_dr %>% 
+  ggplot() +
+  geom_sf(color = "black")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 Intersect the lines with faces of the polygons:
 
@@ -275,28 +296,28 @@ lines_v_intersect <- lines_v %>%
 #> Warning: attribute variables are assumed to be spatially constant throughout all
 #> geometries
 
-lines_h_intersect <- lines_h %>%
-  st_intersection(mosaic %>%
-                    filter(id == "top"))
-#> Warning: attribute variables are assumed to be spatially constant throughout all
-#> geometries
-
-lines_d_intersect <- lines_d %>%
+lines_dr_intersect <- lines_dr %>%
   st_intersection(mosaic %>%
                     filter(id == "left"))
 #> Warning: attribute variables are assumed to be spatially constant throughout all
 #> geometries
 
+lines_dl_intersect <- lines_dl %>%
+  st_intersection(mosaic %>%
+                    filter(id == "top"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
 lines_intersect <- rbind(lines_v_intersect,
-                         lines_h_intersect,
-                         lines_d_intersect)
+                         lines_dr_intersect,
+                         lines_dl_intersect)
 
 ggplot() +
   geom_sf(data = lines_intersect,
           aes(color = id))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 Add fonts:
 
@@ -313,8 +334,7 @@ ggplot() +
   geom_sf(data = lines_intersect %>%
             filter(id != "left"),
           color = "white",
-          size = 1) +
-  scale_color_manual(values = mex.brewer("Alacena")[c(1, 6, 10)]) +
+          size = 0.5) +
   labs(title = "Isometric Perspective", caption = "@paezha") +
   theme_void() +
   theme(legend.position = "none",
@@ -330,27 +350,454 @@ ggplot() +
       family = "unica"))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
 ggsave("isometric-bw.png")
 #> Saving 7 x 5 in image
 ```
 
+## A variation
+
+Use the whole grid but with different line patterns in parts:
+
+``` r
+coords <-  expand.grid(x = seq(0, 10 * sqrt(3), sqrt(3)),
+                       y = seq(0, 11, 3)) %>%
+  rbind(expand.grid(x = seq(sqrt(3)/2, 11 * sqrt(3), sqrt(3)),
+                    y = seq(1 + 1/2, 11, 3)))
+
+coords_1 <- coords %>%
+  filter(sqrt((x - 5 * sqrt(3))^2 + (y - 5)^2) <= 4.3)
+
+coords_2 <- coords %>%
+  filter(sqrt((x - 5 * sqrt(3))^2 + (y - 5)^2) > 4.3)
+
+x_c <- coords_1$x
+y_c <- coords_1$y
+
+mosaic_1 <- map2_dfr(.x = x_c, .y = y_c, ~cube_up(.x, .y)) 
+
+
+x_c <- coords_2$x
+y_c <- coords_2$y
+
+mosaic_2 <- map2_dfr(.x = x_c, .y = y_c, ~cube_up(.x, .y)) 
+
+mosaic_1 %>% 
+  ggplot() +
+  geom_sf(aes(fill = id),
+          color = "white")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+``` r
+mosaic_2 %>% 
+  ggplot() +
+  geom_sf(aes(fill = id),
+          color = "white")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+
+Intersect the lines with faces of the polygons:
+
+``` r
+# Mosaic 1
+lines_v_intersect_1 <- lines_v %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "right"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dr_intersect_1 <- lines_dr %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "left"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dl_intersect_1 <- lines_dl %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "top"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_intersect_1 <- rbind(lines_v_intersect_1,
+                         lines_dr_intersect_1,
+                         lines_dl_intersect_1)
+
+# Mosaic 2
+lines_v_intersect_2 <- lines_v %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "left"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dr_intersect_2 <- lines_dr %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "top"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dl_intersect_2 <- lines_dl %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "right"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_intersect_2 <- rbind(lines_v_intersect_2,
+                         lines_dr_intersect_2,
+                         lines_dl_intersect_2)
+
+ggplot() +
+  geom_sf(data = lines_intersect_1,
+          aes(color = id))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
+``` r
+ggplot() +
+  geom_sf(data = lines_intersect_2,
+          aes(color = id))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
+
 Make pretty:
 
 ``` r
 ggplot() +
-  geom_sf(data = mosaic,
-          aes(fill = id),
-          color = NA) +
-  geom_sf(data = lines_intersect,
-          color = "black",
+  # geom_sf(data = mosaic_1,
+  #         fill = "black",
+  #         color = "white") +
+  # geom_sf(data = mosaic_2,
+  #         fill = "black",
+  #         color = "white") +
+  geom_sf(data = lines_intersect_1 %>%
+            filter(id != "left"),
+          color = "white",
           size = 0.5) +
-  scale_fill_manual(values = mex.brewer("Alacena")[c(1, 6, 10)]) +
+  geom_sf(data = lines_intersect_2 %>%
+            filter(id != "right"),
+          color = "white",
+          size = 0.5) +
+  labs(title = "Isometric Perspective", caption = "@paezha") +
   theme_void() +
   theme(legend.position = "none",
-        panel.background = element_rect(fill = "black"))
+        panel.background = element_rect(fill = "black"),
+        plot.title = element_text(
+      size = rel(5), margin = margin(0, 0, 5, 0, unit = "pt"),
+      family = "monoton", face = "bold"),
+    plot.subtitle = element_text(
+      size = rel(8), margin = margin(0, 0, 10, 0, unit = "pt"),
+      family = "unica"),
+    plot.caption = element_text(
+      size = rel(5), margin = margin(10, 0, 0, 0, unit = "pt"),
+      family = "unica"))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+``` r
+ggsave("isometric-bw-2.png")
+#> Saving 7 x 5 in image
+```
+
+## Another variation
+
+Use the whole grid but with different tiles in parts:
+
+``` r
+coords <-  expand.grid(x = seq(0, 10 * sqrt(3), sqrt(3)),
+                       y = seq(0, 11, 3)) %>%
+  rbind(expand.grid(x = seq(sqrt(3)/2, 11 * sqrt(3), sqrt(3)),
+                    y = seq(1 + 1/2, 11, 3)))
+
+coords_1 <- coords %>%
+  filter(sqrt((x - 5 * sqrt(3))^2 + (y - 5)^2) <= 4.3)
+
+coords_2 <- coords %>%
+  filter(sqrt((x - 5 * sqrt(3))^2 + (y - 5)^2) > 4.3)
+
+x_c <- coords_1$x
+y_c <- coords_1$y
+
+mosaic_1 <- map2_dfr(.x = x_c, .y = y_c, ~cube_up(.x, .y)) 
+
+
+x_c <- coords_2$x
+y_c <- coords_2$y
+
+mosaic_2 <- map2_dfr(.x = x_c, .y = y_c, ~cube_down(.x, .y)) 
+
+mosaic_1 %>% 
+  ggplot() +
+  geom_sf(aes(fill = id),
+          color = "white")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
+``` r
+mosaic_2 %>% 
+  ggplot() +
+  geom_sf(aes(fill = id),
+          color = "white")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
+
+Intersect the lines with faces of the polygons:
+
+``` r
+# Mosaic 1
+lines_v_intersect_1 <- lines_v %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "right"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dr_intersect_1 <- lines_dr %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "left"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dl_intersect_1 <- lines_dl %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "top"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_intersect_1 <- rbind(lines_v_intersect_1,
+                         lines_dr_intersect_1,
+                         lines_dl_intersect_1)
+
+# Mosaic 2
+lines_v_intersect_2 <- lines_v %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "left"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dr_intersect_2 <- lines_dr %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "right"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dl_intersect_2 <- lines_dl %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "bottom"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_intersect_2 <- rbind(lines_v_intersect_2,
+                         lines_dr_intersect_2,
+                         lines_dl_intersect_2)
+
+ggplot() +
+  geom_sf(data = lines_intersect_1,
+          aes(color = id))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+``` r
+ggplot() +
+  geom_sf(data = lines_intersect_2,
+          aes(color = id))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
+
+Make pretty:
+
+``` r
+ggplot() +
+  # geom_sf(data = mosaic_1,
+  #         fill = "black",
+  #         color = "white") +
+  # geom_sf(data = mosaic_2,
+  #         fill = "black",
+  #         color = "white") +
+  geom_sf(data = lines_intersect_1 %>%
+            filter(id != "left"),
+          color = "white",
+          size = 0.5) +
+  geom_sf(data = lines_intersect_2 %>%
+            filter(id != "right"),
+          color = "white",
+          size = 0.5) +
+  labs(title = "Isometric Perspective", caption = "@paezha") +
+  theme_void() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "black"),
+        plot.title = element_text(
+      size = rel(5), margin = margin(0, 0, 5, 0, unit = "pt"),
+      family = "monoton", face = "bold"),
+    plot.subtitle = element_text(
+      size = rel(8), margin = margin(0, 0, 10, 0, unit = "pt"),
+      family = "unica"),
+    plot.caption = element_text(
+      size = rel(5), margin = margin(10, 0, 0, 0, unit = "pt"),
+      family = "unica"))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
+``` r
+ggsave("isometric-bw-3.png")
+#> Saving 7 x 5 in image
+```
+
+## Another variation
+
+Use the whole grid but with different tiles in parts:
+
+``` r
+coords <-  expand.grid(x = seq(0, 10 * sqrt(3), sqrt(3)),
+                       y = seq(0, 11, 3)) %>%
+  rbind(expand.grid(x = seq(sqrt(3)/2, 11 * sqrt(3), sqrt(3)),
+                    y = seq(1 + 1/2, 11, 3)))
+
+coords_1 <- coords %>%
+  slice_sample(prop = 0.5)
+
+coords_2 <- coords %>%
+  anti_join(coords_1)
+#> Joining, by = c("x", "y")
+
+x_c <- coords_1$x
+y_c <- coords_1$y
+
+mosaic_1 <- map2_dfr(.x = x_c, .y = y_c, ~cube_up(.x, .y)) 
+
+
+x_c <- coords_2$x
+y_c <- coords_2$y
+
+mosaic_2 <- map2_dfr(.x = x_c, .y = y_c, ~cube_down(.x, .y)) 
+
+mosaic_1 %>% 
+  ggplot() +
+  geom_sf(aes(fill = id),
+          color = "white")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
+``` r
+mosaic_2 %>% 
+  ggplot() +
+  geom_sf(aes(fill = id),
+          color = "white")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-22-2.png)<!-- -->
+
+Intersect the lines with faces of the polygons:
+
+``` r
+# Mosaic 1
+lines_v_intersect_1 <- lines_v %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "right"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dr_intersect_1 <- lines_dr %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "left"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dl_intersect_1 <- lines_dl %>%
+  st_intersection(mosaic_1 %>%
+                    filter(id == "top"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_intersect_1 <- rbind(lines_v_intersect_1,
+                         lines_dr_intersect_1,
+                         lines_dl_intersect_1)
+
+# Mosaic 2
+lines_v_intersect_2 <- lines_v %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "left"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dr_intersect_2 <- lines_dr %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "right"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_dl_intersect_2 <- lines_dl %>%
+  st_intersection(mosaic_2 %>%
+                    filter(id == "bottom"))
+#> Warning: attribute variables are assumed to be spatially constant throughout all
+#> geometries
+
+lines_intersect_2 <- rbind(lines_v_intersect_2,
+                         lines_dr_intersect_2,
+                         lines_dl_intersect_2)
+
+ggplot() +
+  geom_sf(data = lines_intersect_1,
+          aes(color = id))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+
+``` r
+ggplot() +
+  geom_sf(data = lines_intersect_2,
+          aes(color = id))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-23-2.png)<!-- -->
+
+Make pretty:
+
+``` r
+ggplot() +
+  # geom_sf(data = mosaic_1,
+  #         fill = "black",
+  #         color = "white") +
+  # geom_sf(data = mosaic_2,
+  #         fill = "black",
+  #         color = "white") +
+  geom_sf(data = lines_intersect_1 %>%
+            filter(id != "left"),
+          color = "white",
+          size = 0.5) +
+  geom_sf(data = lines_intersect_2 %>%
+            filter(id != "right"),
+          color = "white",
+          size = 0.5) +
+  labs(title = "Isometric Perspective", caption = "@paezha") +
+  theme_void() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "black"),
+        plot.title = element_text(
+      size = rel(5), margin = margin(0, 0, 5, 0, unit = "pt"),
+      family = "monoton", face = "bold"),
+    plot.subtitle = element_text(
+      size = rel(8), margin = margin(0, 0, 10, 0, unit = "pt"),
+      family = "unica"),
+    plot.caption = element_text(
+      size = rel(5), margin = margin(10, 0, 0, 0, unit = "pt"),
+      family = "unica"))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+
+``` r
+ggsave("isometric-bw-4.png")
+#> Saving 7 x 5 in image
+```

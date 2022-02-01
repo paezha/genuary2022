@@ -255,9 +255,9 @@ surprised by the behavior of
 
 ## In conclusion
 
-This was FUN and I learned a lot. I got to experiment with colors,
-shapes, and compositions. I’d like to explore more the wavescapes or
-cloudscapes, mosaics, both using Truchet tiles and isometric figures,
-asemic glyphs and writing, and more stuff with portraits. Oh, and circle
-packing. I can see this keeping me interested and entertained for some
-time.
+This was FUN and I learned a lot and refreshed my knowledge of
+trigonometry. I got to experiment with colors, shapes, and compositions.
+I’d like to explore more the wavescapes or cloudscapes, mosaics, both
+using Truchet tiles and isometric figures, asemic glyphs and writing,
+and more stuff with portraits. Oh, and circle packing. I can see this
+keeping me interested and entertained for some time.

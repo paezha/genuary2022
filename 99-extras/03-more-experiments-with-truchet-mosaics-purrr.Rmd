@@ -1,0 +1,189 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Here I work with multiscale tiles using a pre-determined tile pattern as opposed to random.
+
+Load packages:
+```{r}
+#library(ambient)
+#library(ggnewscale)
+library(sf)
+library(tidyverse)
+library(truchet)
+```
+
+## Create container for mosaic
+
+To create a data frame with placeholders for the tiles I first select the limits and center of the mosaic:
+```{r}
+# Extent of mosaic
+xlim <- c(0, 9)
+ylim <- c(0, 2)
+
+# Center of mosaic
+c <- c(10, 10)
+
+# Radius
+r1 <- 3.4
+r2 <- 15
+```
+
+
+```{r}
+container <- expand.grid(x = seq(xlim[1], xlim[2], 2),
+                         y = c(0, 2))
+```
+
+
+```{r}
+
+x_c <- container$x
+y_c <- container$y
+type <- c("dl", "dr", "-", "|", "fnw", "fne", "fsw", "fse", "ane", "asw")
+scale_p <- rep(1, nrow(container))
+
+#mosaic <- map2_dfr(.x = x_c, .y = y_c, ~st_truchet_p(.x, .y))
+
+pmap_dfr(list(x_c, y_c, type, scale_p), st_truchet_p) %>%
+  ggplot() + 
+  geom_sf(aes(fill = factor(color)))
+
+pmap_dfr(list(x_c, y_c, type, scale_p/2), st_truchet_p) %>%
+  ggplot() + 
+  geom_sf(aes(fill = factor(color)))
+
+pmap_dfr(list(x_c, y_c, type, scale_p/4), st_truchet_p) %>%
+  ggplot() + 
+  geom_sf(aes(fill = factor(color)))
+```
+
+## Single scale mosaic (at scale 1)
+
+Define size of container:
+```{r}
+# Extent of mosaic
+xlim <- c(0, 10)
+ylim <- c(0, 5)
+```
+
+Create container:
+```{r}
+container <- expand.grid(x = seq(xlim[1], xlim[2], 1),
+                         y = seq(xlim[1], xlim[2], 1))
+```
+
+Use {purrr} to assemble mosaic:
+```{r}
+
+x_c <- container$x
+y_c <- container$y
+type <- sample(c("dl", "dr"), 121, replace = TRUE)
+scale_p <- rep(1, nrow(container))
+
+#mosaic <- map2_dfr(.x = x_c, .y = y_c, ~st_truchet_p(.x, .y))
+
+pmap_dfr(list(x_c, y_c, type, scale_p), st_truchet_p) %>%
+  ggplot() + 
+  geom_sf(aes(fill = factor(color)),
+          color = NA)
+```
+
+## Mosaic with tiles at multiple scales
+
+Define size of mosaic:
+```{r}
+# Extent of mosaic
+xlim <- c(0, 10)
+ylim <- c(0, 10)
+```
+
+Create container:
+```{r}
+container <- expand.grid(x = seq(xlim[1], xlim[2], 1),
+                         y = seq(xlim[1], xlim[2], 1))
+```
+
+Adjust container to accommodate tiles at multiple scales:
+```{r}
+container <- container %>%
+  mutate(scale_p = sample(c(1/4), n(), replace = TRUE))
+
+container_2 <- container %>% 
+  filter(scale_p == 1/2) %>%
+  mutate(x_1 = -0.25, y_1 = 0.25,
+         x_2 = 0.25, y_2 = 0.25, 
+         x_3 = 0.25, y_3 = -0.25, 
+         x_4 = 0.25, y_4 = -0.25) %>%
+  pivot_longer(cols = starts_with("x_"),
+               names_to = "xpos",
+               values_to = "x_shift") %>%
+  pivot_longer(cols = starts_with("y_"),
+               names_to = "ypos",
+               values_to = "y_shift") %>%
+  transmute(x = x + x_shift,
+         y = y + y_shift,
+         scale_p) %>%
+  distinct()
+
+container_3 <- container %>% 
+  filter(scale_p == 1/4) %>%
+  mutate(x_1 = -1/6 * 2, y_1 = 1/6 * 2,
+         x_2 = -1/6, y_2 = 1/6 * 2, 
+         x_3 = 1/6, y_3 = 1/6 * 2, 
+         x_4 = 1/6 * 2, y_4 = 1/6 * 2,
+         x_5 = -1/6 * 2, y_5 = 1/6,
+         x_6 = -1/6, y_6 = 1/6, 
+         x_7 = 1/6, y_7 = 1/6, 
+         x_8 = 1/6 * 2, y_8 = 1/6,
+         x_9 = -1/6 * 2, y_9 = -1/6 ,
+         x_10 = -1/6, y_10 = -1/6, 
+         x_11 = 1/6, y_11 = -1/6, 
+         x_12 = 1/6 * 2, y_12 = -1/6,
+         x_13 = -1/6 * 2, y_13 = -1/6 * 2,
+         x_14 = -1/6, y_14 = -1/6 * 2, 
+         x_15 = 1/6, y_15 = -1/6 * 2, 
+         x_16 = 1/6 * 2, y_16 = -1/6 * 2) %>%
+  pivot_longer(cols = starts_with("x_"),
+               names_to = "xpos",
+               values_to = "x_shift") %>%
+  pivot_longer(cols = starts_with("y_"),
+               names_to = "ypos",
+               values_to = "y_shift") %>%
+  transmute(x = x + x_shift,
+         y = y + y_shift,
+         scale_p) %>%
+  distinct()
+
+container <- container %>%
+   filter(scale_p == 1) %>%
+   rbind(container_2,
+         container_3)
+```
+
+Plot placeholders for tiles:
+```{r}
+
+container  %>%
+ggplot() +
+  geom_point(aes(x, 
+                 y,
+                 color = factor(scale_p)))
+```
+
+Assemble mosaic:
+```{r}
+x_c <- container$x
+y_c <- container$y
+type <- sample(c("dl", "dr", "fsw", "fse", "fnw", "fne", "|", "-"),
+               nrow(container), 
+               replace = TRUE)
+scale_p <- container$scale_p
+
+pmap_dfr(list(x_c, y_c, type, scale_p), st_truchet_p) %>%
+  ggplot() + 
+  geom_sf(aes(fill = factor(color)),
+          color = NA)
+```
+

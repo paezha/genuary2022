@@ -204,8 +204,23 @@ I was not super-inspired by the colors, so used the opportunity to improve packa
 
 ![](27-hex-colors/hex-colors-1.png)
 
-## Day 27: Hexadecimal colors
+## Day 28: Self-portrait
 
 Self-portrait made with the first 80,447 digits of pi.
 
 ![](28-self-portrait/me-pi-tierra.png)
+
+## Day 29: Isometric perspective
+
+I made some figures created with tiles of isometric cubes.
+
+![](29-isometric-perspective/isometric-bw-4.png)
+## Day 31: Negative space
+
+I made a negative cube. I had to adjust my ambitions for this one. Results are in good measure accidental, as I code things and am surprised by the behavior of [{gganimate}](https://gganimate.com/index.html).
+
+![](31-negative-space/animated-negative-space.gif)
+
+## In conclusion
+
+This was FUN and I learned a lot. I got to experiment with colors, shapes, and compositions. I'd like to explore more the wavescapes or cloudscapes, mosaics, both using Truchet tiles and isometric figures, asemic glyphs and writing, and more stuff with portraits. Oh, and circle packing. I can see this keeping me interested and entertained for some time.

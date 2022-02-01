@@ -1,0 +1,185 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="-256 -256 512 512">
+ <title>Some 3D shapes in isometric projection</title>
+ <desc>A cube, cylinder, sphere, pyramid and cone in isometric projection, by CMG Lee. Black labels denote dimensions of the 3D object, while red labels denote dimensions of the 2D projection (drawing).</desc>
+ <defs>
+  <radialGradient id="grad_rad" cx="50%" cy="50%" r="67%" fx="33%" fy="25%">
+   <stop offset="25%" stop-color="#cccccc"/>
+   <stop offset="100%" stop-color="#666666"/>
+  </radialGradient>
+  <linearGradient id="grad_lin" x1="0%" y1="0%" x2="100%" y2="0%">
+   <stop offset="0%" stop-color="#cccccc"/>
+   <stop offset="100%" stop-color="#666666"/>
+  </linearGradient>
+
+  <g id="axes">
+   <line x1="-43.301" y1="25" x2="0" y2="0" stroke="#ff6600" stroke-opacity="0.5"/>
+   <line x1="43.301" y1="-25" x2="0" y2="0" stroke="#ff6600" stroke-opacity="0.25"/>
+   <line x1="43.301" y1="25" x2="0" y2="0" stroke="#00cc00" stroke-opacity="0.5"/>
+   <line x1="-43.301" y1="-25" x2="0" y2="0" stroke="#00cc00" stroke-opacity="0.25"/>
+  </g>
+  <g id="axes1" stroke-width="4">
+   <use xlink:href="#axes"/>
+   <line x1="0" y1="-50" x2="0" y2="0" stroke="#0000ff" stroke-opacity="0.5"/>
+   <line x1="0" y1="50" x2="0" y2="0" stroke="#0000ff" stroke-opacity="0.25"/>
+  </g>
+  <g id="axes2" stroke-width="4">
+   <use transform="translate(0, 50)" xlink:href="#axes"/>
+   <line x1="0" y1="-50" x2="0" y2="50" stroke="#0000ff" stroke-opacity="0.5"/>
+  </g>
+
+  <g id="ghost1" stroke="#cccccc">
+   <path d="M 0 -100 L 86.603 -50 V 50 L 0 100 L -86.603 50 V -50 Z" fill="#ffffff"/>
+   <path d="M 0 -100 V 0 L -86.603 50 M 0 0 L 86.603 50" stroke-dasharray="5,5" fill="none"/>
+  </g>
+  <path id="ghost2" d="M 0 100 V 0 L -86.603 -50 M 0 0 L 86.603 -50" stroke="#cccccc" fill="none"/>
+
+  <g id="cube">
+   <g stroke="#000000" stroke-width="2">
+    <path d="M 0 0 L 86.603 -50 L 0 -100 L -86.603 -50 Z" fill="#cccccc"/>
+    <path d="M 0 0 L -86.603 -50 V 50 L 0 100 Z" fill="#999999"/>
+    <path d="M 0 0 L 86.603 -50 V 50 L 0 100 Z" fill="#666666"/>
+    <path d="M 0 -100 V 0 L -86.603 50 M 0 0 L 86.603 50" stroke-dasharray="5,5" fill="none"/>
+   </g>
+   <use xlink:href="#axes1"/>
+   <g stroke="#ff0000">
+    <path d="M -90 -50 H -100 V 50 H -90" fill="none"/>
+    <text transform="translate(105, -50)" text-anchor="start" stroke="none">
+     <tspan x="0" y="0">√2</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+    <path d="M -86.603 55 V 70 L 0 120 V 105 V 120 L 86.603 70 V 55" fill="none"/>
+    <text transform="translate(-55, 110)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+    <text transform="translate(55, 110)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+    <path d="M -86.603 -55 V -110 H 86.603 V -55" fill="none"/>
+    <text transform="translate(0, -115)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="-1em">√2</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">√3</tspan>
+    </text>
+    <path d="M 10 -100 H 100 V 0 H 10" fill="none"/>
+    <text transform="translate(-105)" text-anchor="end" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+   </g>
+  </g>
+
+  <g id="pyramid">
+   <use xlink:href="#ghost1"/>
+   <g stroke="#000000" stroke-width="2">
+    <path d="M 0 -50 V 100 L -86.603 50 Z" fill="#cccccc"/>
+    <path d="M 0 -50 V 100 L 86.603 50 Z" fill="#999999"/>
+    <path d="M -86.603 50 L 0 0 L 86.603 50" stroke-dasharray="5,5" fill="none"/>
+   </g>
+   <use xlink:href="#axes2"/>
+   <use xlink:href="#ghost2"/>
+   <g stroke="#ff0000">
+    <path d="M -5 -55 L -13 -63 L -99 37 L -90 45" fill="none"/>
+    <text transform="translate(-70, -40)" text-anchor="end" stroke="none">
+     <tspan x="0" y="0">√1.5</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">√2.5</tspan>
+    </text>
+    <path d="M -86.603 55 V 70 L 0 120 V 105 V 120 L 86.603 70 V 55" fill="none"/>
+    <text transform="translate(-55, 110)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+    <text transform="translate(55, 110)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+   </g>
+  </g>
+
+  <g id="cone">
+   <use xlink:href="#ghost1"/>
+   <g stroke="#000000" stroke-width="2">
+    <path d="M 0 -50 L 57.282 37.5 A 61.237 35.355 0 1 1 -57.282 37.5 Z" fill="url(#grad_lin)"/>
+    <path d="M -61.237 50 A 61.237 35.355 0 0 1 61.237 50" stroke-dasharray="5,5" fill="none"/>
+   </g>
+   <use xlink:href="#axes2"/>
+   <use xlink:href="#ghost2"/>
+   <g stroke="#ff0000">
+    <path d="M 5 -50 H 100 V 50 H 65" fill="none"/>
+    <text transform="translate(105)" text-anchor="start" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+    <path d="M -61.237 60 V 100 H 61.237 V 60" fill="none"/>
+    <text transform="translate(0, 100)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="1em">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">√1.5</tspan>
+    </text>
+   </g>
+  </g>
+
+  <g id="cylinder">
+   <use xlink:href="#ghost1"/>
+   <g stroke="#000000" stroke-width="2">
+    <ellipse cx="0" cy="-50" rx="61.237" ry="35.355" fill="#cccccc"/>
+    <path d="M -61.237 -50 A 61.237 35.355 0 0 0 61.237 -50 V 50 A 61.237 35.355 0 0 1 -61.237 50 Z" fill="url(#grad_lin)"/>
+    <path d="M -61.237 50 A 61.237 35.355 0 0 1 61.237 50" stroke-dasharray="5,5" fill="none"/>
+   </g>
+   <use xlink:href="#axes1"/>
+   <use xlink:href="#ghost2"/>
+   <g stroke="#ff0000">
+    <path d="M 65 -50 H 100 V 50 H 65" fill="none"/>
+    <text transform="translate(105)" text-anchor="start" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">1</tspan>
+    </text>
+    <path d="M -20 -85.355 H -75 V -14.645 H -20" fill="none"/>
+    <text transform="translate(-80, -50)" text-anchor="end" stroke="none">
+     <tspan x="0" y="0">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">√0.5</tspan>
+    </text>
+    <path d="M -61.237 60 V 100 H 61.237 V 60" fill="none"/>
+    <text transform="translate(0, 100)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="1em">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">√1.5</tspan>
+    </text>
+   </g>
+  </g>
+
+  <g id="sphere">
+   <!-- <use xlink:href="#ghost1"/> -->
+   <g stroke="#000000" stroke-width="2">
+    <ellipse cx="0" cy="0" rx="61.237" ry="61.237" fill="url(#grad_rad)"/>
+   </g>
+   <use xlink:href="#axes1"/>
+   <!-- <use xlink:href="#ghost2"/> -->
+   <g stroke="#ff0000">
+    <path d="M -61.237 20 V 70 H 61.237 V 20" fill="none"/>
+    <text transform="translate(0, 75)" text-anchor="middle" stroke="none">
+     <tspan x="0" y="1em">1</tspan>
+     <tspan x="0" dy="1em" fill="#ff0000">√1.5</tspan>
+    </text>
+   </g>
+  </g>
+
+  <g id="main" text-anchor="middle" font-family="sans-serif" font-size="16" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" fill="#000000">
+   <g transform="translate(120, 120)">
+    <use xlink:href="#cone"/>
+   </g>
+   <g transform="translate(-120, 120)">
+    <use xlink:href="#pyramid"/>
+   </g>
+   <g transform="translate(10, 50)">
+    <use xlink:href="#sphere"/>
+   </g>
+   <g transform="translate(120, -110)">
+    <use xlink:href="#cylinder"/>
+   </g>
+   <g transform="translate(-120, -110)">
+    <use xlink:href="#cube"/>
+   </g>
+  </g>
+ </defs>
+ <use xlink:href="#main"/>
+</svg>

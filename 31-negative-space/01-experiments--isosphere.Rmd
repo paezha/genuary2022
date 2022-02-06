@@ -66,8 +66,13 @@ df <- map2_dfr(r,
 
 Define a color palette:
 ```{r}
-col_palette_name <- "Atentado"
-col_palette <- c(mex.brewer(col_palette_name), rev(mex.brewer(col_palette_name)))
+# This seems to work best for diverging palettes
+#col_palette_name <- "Frida"
+#col_palette <- c(mex.brewer(col_palette_name), rev(mex.brewer(col_palette_name)))
+
+# This seems to work best for sequential palettes
+col_palette_name <- "Aurora"
+col_palette <- c(rev(mex.brewer(col_palette_name)), mex.brewer(col_palette_name))
 ```
 
 Plot:
@@ -189,7 +194,7 @@ df_3 <- map2_dfr(r,
   mutate(id = id + max(df_2$id))
 ```
 
-Create plot for animation:
+Create plot for animation (the colors depend on the id or t - the animations after coloring by t are indicated in the names of the file)(after trying colors by id and by t I think I like the latter better; notice that r is a function of t, but likely changes at a different rate, might be interesting to try):
 ```{r}
 p <- ggplot() + 
   geom_point(data = rbind(df, 

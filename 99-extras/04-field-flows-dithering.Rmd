@@ -1,0 +1,152 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Here I experiment with combining flow fields with images (dithering).
+
+Load packages:
+```{r}
+#library(ambient)
+#library(ggnewscale)
+library(imager)
+#library(magick)
+library(sf)
+library(tidyverse)
+```
+
+## Process image
+
+## Process image
+
+Read the image using `imager::load.image()`:
+```{r}
+#melville <- image_read("melville_lg.jpg")
+snowscape <- load.image("snowscape.jpg")
+```
+
+Check the size of the image: 
+```{r}
+summary(snowscape)
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+snowscape_df <- snowscape %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+snowscape_df_grayscale <- snowscape %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+snowscape_df <- snowscape_df %>%
+  left_join(snowscape_df_grayscale,
+            by = c("x", "y"))
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 10
+ny <- 20
+
+snowscape_sampled <- snowscape_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Plot:
+```{r}
+snowscape_sampled %>%
+  ggplot(aes(x, 
+             y, 
+             color = color)) + 
+  geom_point(aes(size = value)) + 
+  scale_color_identity() +
+  scale_y_reverse() + 
+  scale_size(range = c(1, 6)) +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("snowscape-circles.png")
+```
+
+Plot with different shape:
+```{r}
+snowscape_sampled %>%
+  ggplot(aes(x, 
+             y, 
+             color = color)) + 
+  geom_point(aes(size = value),
+             shape = 17) +
+  geom_point(size = 0.1,
+             color = "black",
+             shape = 20) +
+  scale_color_identity() +
+  scale_size(range = c(1, 5)) +
+  scale_y_reverse() + 
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("snowscape-dotted-diamonds.png")
+```
+
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 10
+ny <- 20
+
+snowscape_sampled <- snowscape_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Define length of segments:
+```{r}
+l <- 15 # Experiment with the length
+```
+
+Create and plot the flow field:
+```{r}
+
+n_min <- min(snowscape_sampled$x)
+n_max <- max(snowscape_sampled$x)
+
+# Offsets
+x_o <- -max(snowscape_sampled$x)/2 # Experiment with the sign and the fraction
+y_o <- 0 #max(snowscape_sampled$y)
+
+df <- snowscape_sampled %>%
+  mutate(angle = 1 * pi/6 * (1 -(x - x_o)/(n_max - n_min)),
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend,
+                   size = value,
+                   color = color)) +
+  scale_size(range = c(1, 8)) + # Experiment with the range
+  scale_color_identity() +
+  scale_y_reverse() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("snowscape-flow-field.png")
+```
+

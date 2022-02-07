@@ -7,17 +7,13 @@ Here I experiment with combining flow fields with images (dithering).
 
 Load packages:
 ```{r}
-#library(ambient)
-#library(ggnewscale)
+library(ggnewscale)
 library(imager)
-#library(magick)
 library(sf)
 library(tidyverse)
 ```
 
-## Process image
-
-## Process image
+## Process image - snowscape
 
 Read the image using `imager::load.image()`:
 ```{r}
@@ -148,5 +144,434 @@ df %>%
   theme(legend.position = "none")
 
 ggsave("snowscape-flow-field.png")
+```
+
+## Process image - Meghan
+
+Read the image using `imager::load.image()`:
+```{r}
+meghan <- load.image("meghan.jpg")
+```
+
+Check the size of the image: 
+```{r}
+summary(meghan)
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+meghan_df <- meghan %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+meghan_df_grayscale <- meghan %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+meghan_df <- meghan_df %>%
+  left_join(meghan_df_grayscale,
+            by = c("x", "y"))
+```
+
+Crop image:
+```{r}
+meghan_df <- meghan_df %>%
+  filter(x <= 1250, y <= 1250)
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 20
+ny <- 20
+
+meghan_sampled <- meghan_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Plot:
+```{r}
+meghan_sampled %>%
+  ggplot() + 
+  geom_point(aes(x, 
+             y,
+             color = value),
+             shape = 15,
+             size = 6) +
+  scale_color_fermenter(palette = "greens") +
+  new_scale_color() +
+  geom_point(aes(x, 
+             y, 
+             color = color,
+             size = value)) + 
+  scale_color_identity() +
+  scale_y_reverse() + 
+  scale_size(range = c(0.1, 3)) +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("meghan-circles.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+Plot with different shape:
+```{r}
+meghan_sampled %>%
+  ggplot() + 
+   geom_point(aes(x,
+              y),
+              color = "black",
+              shape = 15,
+              size = 6) +
+  geom_point(aes(x, 
+             y,
+             color = color,
+             size = value),
+             shape = 17) +
+   # geom_point(aes(x, 
+   #            y),
+   #            size = 0.1,
+   #            color = "black",
+   #            shape = 20) +
+  scale_color_identity() +
+  scale_size(range = c(1, 4)) +
+  scale_y_reverse() + 
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("meghan-diamonds.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 25
+ny <- 25
+
+meghan_sampled <- meghan_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Define length of segments:
+```{r}
+l <- 25 # Experiment with the length
+```
+
+Create and plot the flow field:
+```{r}
+n_min <- min(meghan_sampled$x)
+n_max <- max(meghan_sampled$x)
+
+# Offsets
+x_o <- 0 #max(meghan_sampled$x)/2 # Experiment with the sign and the fraction
+y_o <- 0 #max(meghan_sampled$y)
+# Initial rotation
+init_r <- 1/8
+
+
+df <- meghan_sampled %>%
+  mutate(angle = ((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi + init_r * pi,
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+   geom_point(aes(x,
+              y, 
+              color = value),
+              #color = "black",
+              shape = 15,
+              size = 6) +
+  scale_color_fermenter(palette = "Greys") +
+  new_scale_color() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend,
+                   size = value,
+                   color = color)) +
+  scale_size(range = c(0.5, 3)) + # Experiment with the range
+  scale_color_identity() +
+  scale_y_reverse() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("meghan-flow-field.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+## Process image - Mariana
+
+Read the image using `imager::load.image()`:
+```{r}
+mariana <- load.image("mariana-gato.jpg")
+```
+
+Check the size of the image: 
+```{r}
+summary(mariana)
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+mariana_df <- mariana %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+mariana_df_grayscale <- mariana %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+mariana_df <- mariana_df %>%
+  left_join(mariana_df_grayscale,
+            by = c("x", "y"))
+```
+
+Crop image:
+```{r}
+#mariana_df <- mariana_df %>%
+#  filter(x <= 1250, y <= 1250)
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 30
+ny <- 30
+
+mariana_sampled <- mariana_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Plot:
+```{r}
+mariana_sampled %>%
+  ggplot() + 
+  geom_point(aes(x, 
+             y,
+             color = value),
+             shape = 15,
+             size = 6) +
+  scale_color_fermenter(palette = "Greys") +
+  new_scale_color() +
+  geom_point(aes(x, 
+             y, 
+             color = color,
+             size = value)) + 
+  scale_color_identity() +
+  scale_y_reverse() + 
+  scale_size(range = c(0.1, 3)) +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+# ggsave("meghan-circles.png",
+#        height = 8,
+#        width = 8,
+#        units = "in")
+```
+
+Plot with different shape:
+```{r}
+mariana_sampled %>%
+  ggplot() + 
+   geom_point(aes(x,
+              y),
+              color = "black",
+              shape = 15,
+              size = 6) +
+  geom_point(aes(x, 
+             y,
+             color = color,
+             size = value),
+             shape = 17) +
+   # geom_point(aes(x, 
+   #            y),
+   #            size = 0.1,
+   #            color = "black",
+   #            shape = 20) +
+  scale_color_identity() +
+  scale_size(range = c(1, 4)) +
+  scale_y_reverse() + 
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+# ggsave("meghan-diamonds.png",
+#        height = 8,
+#        width = 8,
+#        units = "in")
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 25
+ny <- 25
+
+mariana_sampled <- mariana_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Define length of segments:
+```{r}
+l <- 25 # Experiment with the length
+```
+
+Create and plot the flow field:
+```{r}
+n_min <- min(meghan_sampled$x)
+n_max <- max(meghan_sampled$x)
+
+# Offsets
+x_o <- 0 #max(meghan_sampled$x)/2 # Experiment with the sign and the fraction
+y_o <- 0 #max(meghan_sampled$y)
+# Initial rotation
+init_r <- 1/8
+
+
+df <- mariana_sampled %>%
+  mutate(angle = ((x - x_o) * (y - y_o)) /(n_max - n_min)^2 * 2 * pi + init_r * pi,
+         xend = (x + l * cos(angle)),
+         yend = (y + l * sin(angle)))
+
+df %>%
+  ggplot() +
+   geom_point(aes(x,
+              y, 
+              color = value),
+              color = "black",
+              shape = 15,
+              size = 6) +
+  scale_color_distiller(palette = "Greys") +
+  new_scale_color() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend,
+                   size = value,
+                   color = color)) +
+  scale_size(range = c(0.5, 3)) + # Experiment with the range
+  scale_color_identity() +
+  scale_y_reverse() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("mariana-flow-field.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+## Process image - Mariana
+
+Read the image using `imager::load.image()`:
+```{r}
+oregon <- load.image("oregon.jpg")
+```
+
+Check the size of the image: 
+```{r}
+summary(oregon)
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+oregon_df <- oregon %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+oregon_df_grayscale <- oregon %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+oregon_df <- oregon_df %>%
+  left_join(oregon_df_grayscale,
+            by = c("x", "y"))
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 10
+ny <- 10
+
+oregon_sampled <- oregon_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Create and plot the flow field:
+```{r}
+# Offsets
+x_o <- 560
+y_o <- 140
+
+
+df <- oregon_sampled %>%
+  #length of segments depends on position, and the angle is constant from x_o, y_o
+  mutate(xend = (x + (x - x_o)/30 * pi/4),
+         yend = (y + (y - y_o)/30 * pi/4))
+
+df %>%
+  ggplot() +
+  geom_point(aes(x,
+              y,
+              color = value),
+              shape = 15,
+              size = 6) +
+  scale_color_distiller(palette = "Greys") +
+  new_scale_color() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend,
+                   size = value,
+                   color = color)) +
+  scale_size(range = c(0.1, 2)) + # Experiment with the range
+  scale_color_identity() +
+  scale_y_reverse() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("oregon-flow-field.png",
+       height = 8,
+       width = 8,
+       units = "in")
 ```
 

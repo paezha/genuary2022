@@ -734,5 +734,107 @@ ggsave(filename = "packing-sigmoids-2-atentado.png",
        units = "in")
 ```
 
+## Try with an underlying image (check this out: https://twitter.com/saurabhdhiman/status/1488268698703912961?s=20&t=HAQgcp8Sxw1lbdhpU-ltjw)
+
+Load packages:
+```{r}
+library(imager)
+```
+
+## Snowscape
+
+Read the image using `imager::load.image()`:
+```{r}
+snowscape <- load.image("snowscape.jpg")
+```
+
+Check the size of the image: 
+```{r}
+summary(snowscape)
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+snowscape_df <- snowscape %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Plot image:
+```{r}
+plot(snowscape)
+```
+
+
+Create a circle to serve as container, centered on the sun:
+```{r}
+container <- data.frame(x = 650, y = 780) %>%
+  st_as_sf(coords = c("x", "y")) %>%
+  st_buffer(dist = 650) %>%
+  mutate(id = 1:n(),
+         r = NA) %>%
+  st_cast(to = "MULTILINESTRING")
+```
+
+Plot:
+```{r}
+plot(snowscape)
+plot(st_geometry(container), add = TRUE)
+```
+
+Pack circles:
+```{r}
+circles <- container %>%
+  st_circle_packer(max_circles = 20000, 
+                   max_radius = c(10),
+                   min_radius = c(1))
+```
+
+Plot:
+```{r}
+ggplot(circles) +
+  geom_sf() + 
+  scale_y_reverse()
+```
+
+Now find the nearest pixel in the original image to borrow the color. First get the centroids of the circles:
+```{r}
+circle_centroids <- circles %>%
+          st_centroid()
+```
+
+Convert the image to sf to use sf functions to find nearest features to borrow colors:
+```{r}
+snowscape_sf <- snowscape_df %>%
+    st_as_sf(coords = c("x", "y"))
+
+```
+
+Find the nearest feature in the original image to borrow the colors:
+```{r}
+snowscape_colors <- snowscape_df[circle_centroids %>%
+                                   st_nearest_feature(snowscape_sf),]
+```
+
+Bind the colors to the packed circles:
+```{r}
+circles <- circles %>%
+  mutate(color = snowscape_colors$color)
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_sf(data = circles,
+          aes(fill = color),
+          color = NA) + 
+  scale_y_reverse() +
+  scale_fill_identity() + 
+  theme_void()
+
+ggsave("snowscape-circle-packing.png")
+```
 
 

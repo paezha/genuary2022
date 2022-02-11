@@ -202,16 +202,16 @@ Plot:
 meghan_sampled %>%
   ggplot() + 
   geom_point(aes(x, 
-             y,
-             color = value),
+                 y,
+                 color = value),
              shape = 15,
              size = 6) +
   scale_color_fermenter(palette = "greens") +
   new_scale_color() +
   geom_point(aes(x, 
-             y, 
-             color = color,
-             size = value)) + 
+                 y, 
+                 color = color,
+                 size = value)) + 
   scale_color_identity() +
   scale_y_reverse() + 
   scale_size(range = c(0.1, 3)) +
@@ -229,21 +229,21 @@ Plot with different shape:
 ```{r}
 meghan_sampled %>%
   ggplot() + 
-   geom_point(aes(x,
-              y),
-              color = "black",
-              shape = 15,
-              size = 6) +
+  geom_point(aes(x,
+                 y),
+             color = "black",
+             shape = 15,
+             size = 6) +
   geom_point(aes(x, 
-             y,
-             color = color,
-             size = value),
+                 y,
+                 color = color,
+                 size = value),
              shape = 17) +
-   # geom_point(aes(x, 
-   #            y),
-   #            size = 0.1,
-   #            color = "black",
-   #            shape = 20) +
+  # geom_point(aes(x, 
+  #            y),
+  #            size = 0.1,
+  #            color = "black",
+  #            shape = 20) +
   scale_color_identity() +
   scale_size(range = c(1, 4)) +
   scale_y_reverse() + 
@@ -291,12 +291,12 @@ df <- meghan_sampled %>%
 
 df %>%
   ggplot() +
-   geom_point(aes(x,
-              y, 
-              color = value),
-              #color = "black",
-              shape = 15,
-              size = 6) +
+  geom_point(aes(x,
+                 y, 
+                 color = value),
+             #color = "black",
+             shape = 15,
+             size = 6) +
   scale_color_fermenter(palette = "Greys") +
   new_scale_color() +
   geom_segment(aes(x = x,
@@ -374,16 +374,16 @@ Plot:
 mariana_sampled %>%
   ggplot() + 
   geom_point(aes(x, 
-             y,
-             color = value),
+                 y,
+                 color = value),
              shape = 15,
              size = 6) +
   scale_color_fermenter(palette = "Greys") +
   new_scale_color() +
   geom_point(aes(x, 
-             y, 
-             color = color,
-             size = value)) + 
+                 y, 
+                 color = color,
+                 size = value)) + 
   scale_color_identity() +
   scale_y_reverse() + 
   scale_size(range = c(0.1, 3)) +
@@ -401,21 +401,21 @@ Plot with different shape:
 ```{r}
 mariana_sampled %>%
   ggplot() + 
-   geom_point(aes(x,
-              y),
-              color = "black",
-              shape = 15,
-              size = 6) +
+  geom_point(aes(x,
+                 y),
+             color = "black",
+             shape = 15,
+             size = 6) +
   geom_point(aes(x, 
-             y,
-             color = color,
-             size = value),
+                 y,
+                 color = color,
+                 size = value),
              shape = 17) +
-   # geom_point(aes(x, 
-   #            y),
-   #            size = 0.1,
-   #            color = "black",
-   #            shape = 20) +
+  # geom_point(aes(x, 
+  #            y),
+  #            size = 0.1,
+  #            color = "black",
+  #            shape = 20) +
   scale_color_identity() +
   scale_size(range = c(1, 4)) +
   scale_y_reverse() + 
@@ -463,12 +463,12 @@ df <- mariana_sampled %>%
 
 df %>%
   ggplot() +
-   geom_point(aes(x,
-              y, 
-              color = value),
-              color = "black",
-              shape = 15,
-              size = 6) +
+  geom_point(aes(x,
+                 y, 
+                 color = value),
+             color = "black",
+             shape = 15,
+             size = 6) +
   scale_color_distiller(palette = "Greys") +
   new_scale_color() +
   geom_segment(aes(x = x,
@@ -490,7 +490,7 @@ ggsave("mariana-flow-field.png",
        units = "in")
 ```
 
-## Process image - Mariana
+## Process image - Oregon
 
 Read the image using `imager::load.image()`:
 ```{r}
@@ -550,10 +550,10 @@ df <- oregon_sampled %>%
 df %>%
   ggplot() +
   geom_point(aes(x,
-              y,
-              color = value),
-              shape = 15,
-              size = 6) +
+                 y,
+                 color = value),
+             shape = 15,
+             size = 6) +
   scale_color_distiller(palette = "Greys") +
   new_scale_color() +
   geom_segment(aes(x = x,
@@ -574,4 +574,415 @@ ggsave("oregon-flow-field.png",
        width = 8,
        units = "in")
 ```
+
+## Waldport
+
+See https://twitter.com/mark_lawler/status/1490467641676337154/photo/2 for this image:
+![](Waldport.jpg)
+
+Read the image using `imager::load.image()`:
+```{r}
+waldport <- load.image("waldport.jpg")
+```
+
+Check the size of the image: 
+```{r}
+summary(waldport)
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+waldport_df <- waldport %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+waldport_df_grayscale <- waldport %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+waldport_df <- waldport_df %>%
+  left_join(waldport_df_grayscale,
+            by = c("x", "y"))
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 20
+ny <- 20
+
+waldport_sampled <- waldport_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Create and plot the flow field:
+```{r}
+# Offsets
+x_o <- -1000
+y_o <- 770
+
+
+df <- waldport_sampled %>%
+  #length of segments depends on position, and the angle is constant from x_o, y_o
+  mutate(xend = (x + (x - x_o)/20 * pi/8),
+         yend = (y + (y - y_o)/20 * pi/8))
+
+df %>%
+  ggplot() +
+  geom_point(aes(x,
+                 y,
+                 color = rev(y)),
+             shape = 15,
+             size = 6) +
+  scale_color_gradientn(colors = MexBrewer::mex.brewer("Atentado")) +
+  new_scale_color() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend,
+                   size = value,
+                   color = color)) +
+  scale_size(range = c(0.01, 0.75)) + # Experiment with the range
+  scale_color_identity() +
+  scale_y_reverse() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("waldport-flow-field.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+## One more of another beach! Check this: https://twitter.com/GiuIianoDMedici/status/1490715140051947521
+
+![](beach.jpg)
+
+Read the image using `imager::load.image()`:
+```{r}
+beach <- load.image("beach.jpg")
+```
+
+Check the size of the image: 
+```{r}
+beach
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+beach_df <- beach %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+beach_df_grayscale <- beach %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+beach_df <- beach_df %>%
+  left_join(beach_df_grayscale,
+            by = c("x", "y"))
+```
+
+Retrieve every nth row/column from image:
+```{r}
+nx <- 10
+ny <- 10
+
+beach_sampled <- beach_df %>%
+  filter(x %% nx == 1,
+         y %% ny == 1) 
+```
+
+Create and plot the flow field:
+```{r}
+# Offsets
+x_o <- 200
+y_o <- 480
+
+
+df <- beach_sampled %>%
+  #length of segments depends on position, and the angle is constant from x_o, y_o
+  mutate(xend = (x + (x - x_o)/20 * pi/4),
+         yend = (y + (y - y_o)/20 * pi/4))
+
+df %>%
+  ggplot() +
+  geom_point(aes(x,
+                 y,
+                 color = rev(y)),
+             shape = 15,
+             size = 6) +
+  scale_color_gradientn(colors = MexBrewer::mex.brewer("Atentado")) +
+  new_scale_color() +
+  geom_segment(aes(x = x,
+                   y = y,
+                   xend = xend,
+                   yend = yend,
+                   size = sqrt((x - x_o)^2 + (y - y_o)^2),
+                   color = color)) +
+  scale_size(range = c(0.5, 1.5)) + # Experiment with the range
+  scale_color_identity() +
+  scale_y_reverse() +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("beach-flow-field.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+## Flower 1 and spirals
+
+![](flower.jpg)
+
+Read the image using `imager::load.image()`:
+```{r}
+flower <- load.image("flower.jpg")
+```
+
+Check the size of the image: 
+```{r}
+flower
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+flower_df <- flower %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+flower_df_grayscale <- flower %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+flower_df <- flower_df %>%
+  left_join(flower_df_grayscale,
+            by = c("x", "y"))
+```
+
+Convert the image to sf to use sf functions to find nearest features to borrow colors:
+```{r}
+flower_sf <- flower_df %>%
+    st_as_sf(coords = c("x", "y"))
+
+```
+
+Golden spiral:
+```{r}
+#points <- 500
+
+# Defining the Golden Angle
+angle <- pi * (3 - sqrt(5))
+
+#t_o <- seq(1, 10, 1) 
+
+gs <- data.frame(t_o = seq(1, 750, 0.1) * angle) %>%
+  mutate(x_o = 300 + t_o * sin(t_o),
+         y_o = 300 + t_o * cos(t_o),
+         x_end = x_o + 20 * sin(t_o),
+         y_end = y_o + 20 * cos(t_o))
+```
+
+Convert to sf to borrow the colors from the image:
+```{r}
+gs <- gs %>%
+  mutate(x = x_o,
+         y = y_o) %>%
+  st_as_sf(coords = c("x", "y"))
+```
+
+
+Find the nearest feature in the original image to borrow the colors:
+```{r}
+flower_colors <- flower_df[gs %>%
+                                   st_nearest_feature(flower_sf),]
+```
+
+Bind the colors to the packed circles:
+```{r}
+gs <- gs %>%
+  mutate(color = flower_colors$color,
+         value = flower_colors$value)
+```
+
+Plot:
+```{r}
+# Make a scatter plot of points in a spiral
+ggplot() +
+  geom_point(data= flower_df,
+             aes(x,
+                 y,
+                 color = value),
+             #color = "black",
+             shape = 15,
+             size = 6) +
+  scale_color_gradientn(colors = MexBrewer::mex.brewer("Atentado")) +
+  #scale_color_distiller(palette = "Blues") +
+  new_scale_color() +
+  geom_segment(data = gs %>%
+                 filter(x_o > 10 & x_o < 710,
+                        y_o > 10 & y_o < 950),
+               aes(x = x_o,
+                   xend = x_end,
+                   y = y_o,
+                   yend = y_end,
+                   size = t_o,
+                   color = color)) +
+  scale_y_reverse() +
+  scale_color_identity() +
+  scale_size(range = c(0.1, 3)) +
+  coord_equal() +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("flower-flow-field.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+## Flower 2 and spirals
+
+![](flower-2.jpg)
+
+Read the image using `imager::load.image()`:
+```{r}
+flower <- load.image("flower-2.jpg")
+```
+
+Check the size of the image: 
+```{r}
+flower
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+flower_df <- flower %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+flower_df_grayscale <- flower %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+flower_df <- flower_df %>%
+  left_join(flower_df_grayscale,
+            by = c("x", "y"))
+```
+
+Convert the image to sf to use sf functions to find nearest features to borrow colors:
+```{r}
+flower_sf <- flower_df %>%
+    st_as_sf(coords = c("x", "y"))
+```
+
+Golden spiral:
+```{r}
+#points <- 500
+
+# Defining the Golden Angle
+angle <- pi * (3 - sqrt(5))
+
+#t_o <- seq(1, 10, 1) 
+
+gs <- data.frame(t_o = seq(1, 750, 0.1) * angle) %>%
+  mutate(x_o = 160 + t_o * sin(t_o),
+         y_o = 310 + t_o * cos(t_o),
+         x_end = x_o + 20 * sin(t_o),
+         y_end = y_o + 20 * cos(t_o))
+```
+
+Convert to sf to borrow the colors from the image:
+```{r}
+gs <- gs %>%
+  mutate(x = x_o,
+         y = y_o) %>%
+  st_as_sf(coords = c("x", "y"))
+```
+
+Find the nearest feature in the original image to borrow the colors:
+```{r}
+flower_colors <- flower_df[gs %>%
+                                   st_nearest_feature(flower_sf),]
+```
+
+Bind the colors to the spiral:
+```{r}
+gs <- gs %>%
+  mutate(color = flower_colors$color,
+         value = flower_colors$value)
+```
+
+Plot:
+```{r}
+# Make a scatter plot of points in a spiral
+ggplot() +
+  # geom_point(data= flower_df,
+  #            aes(x,
+  #                y,
+  #                color = value),
+  #            #color = "black",
+  #            shape = 15,
+  #            size = 6) +
+  # scale_color_gradientn(colors = MexBrewer::mex.brewer("Atentado")) +
+  # scale_color_distiller(palette = "Blues") +
+  # new_scale_color() +
+  geom_segment(data = gs %>%
+                 filter(x_o > 10 & x_o < 710,
+                        y_o > 10 & y_o < 950),
+               aes(x = x_o,
+                   xend = x_end,
+                   y = y_o,
+                   yend = y_end,
+                   size = t_o,
+                   color = color)) +
+  scale_y_reverse() +
+  scale_color_identity() +
+  scale_size(range = c(0.1, 3)) +
+  coord_equal() +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("flower-2-flow-field.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```
+
+
 

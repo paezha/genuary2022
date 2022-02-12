@@ -984,5 +984,219 @@ ggsave("flower-2-flow-field.png",
        units = "in")
 ```
 
+## Knots (nodal curves): see https://mathcurve.com/courbes2d.gb/noeud/noeud.shtml 
+
+Polar equation:
+$$
+\rho = a \tan(n\theta)
+$$
+or:
+$$
+\rho = a \cot(n\theta)
+$$
+with $n>0$. Each curve is obtained for:
+$$
+-\frac{\pi}{2n} < \theta < \frac{\pi}{2n}
+$$
+
+Create a data frame to calculate the values of the knot function with parameters $a$ and $n$. If $n$ is a rational number $p/q$, the number of branches is $2p$ if $q$ is odd, and $p$ if $q$ is even. Each rotation of a branch is by an angle of $\pi/n$:
+```{r}
+# Scale factor
+a <- 1
+#Extent of values: larger ext means that fewer angles theta will be used in the calculation. If ext == 1 then the whole domain -pi/(2n) to pi/(2n) is used
+ext <- 10 # Must be greater than 1
+p <- 6
+q <- 5
+n <- p/q
+# Number of branches
+nb <- ifelse(q %% 2 == 1, 2 * p, p)
+
+# Initialize data frame
+df <- data.frame(t = seq(-pi/(ext * 2 * n), 
+                         pi/(ext * 2 * n), 
+                         length.out = 180)) %>%
+  slice(3:178)
+
+df <- df %>%
+  # Rotation of branches is between 0 and 2 * pi (which replicates zero); the step increments are the 2 * pi divided by number of branches
+  cbind(k = rep(seq(0, 2 * pi * (1 - 1/nb), by = 2 * pi/nb), each = nrow(df))) %>%
+  # Calculate polar coordinates and then convert to cartesian coordinates
+  mutate(r = a * tan(n * (t + k)),
+         x = r * cos(t + k),
+         y = r * sin(t + k)) #%>%
+  # # Rotation
+  # mutate(x = x * cos(k) - y * sin(k),
+  #        y = x * sin(k) + y * cos(k))
+  
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_point(data = df,
+             aes(x,
+                 y,
+                 color = factor(k))) + 
+  coord_equal()
+```
 
 
+## Dopler spiral: see https://mathcurve.com/courbes2d.gb/doppler/doppler.htm
+
+Parametric equations:
+$$
+x = a(t\cos(t) + kt)
+$$
+and:
+$$
+y = at\sin(t)
+$$
+
+Create a data frame to calculate the values of the spiral with parameters $a$ and $k$:
+```{r}
+# Scale factor
+a <- 3
+k <- 0.5
+
+# Initialize data frame
+df <- data.frame(t = seq(0, 
+                         150, 
+                         length.out = 300)) %>%
+  # Calculate polar coordinates and then convert to cartesian coordinates
+  mutate(x = a * (t * cos(t) + k * t),
+         y = a * t * sin(t),
+         x_end = x - 20 * cos(t),
+         y_end = y + 20 * sin(t))
+```
+
+Plot:
+```{r}
+ggplot() +
+  geom_point(data = df,
+             aes(x,
+                 y,
+                 color = t)) + 
+  geom_segment(data = df,
+             aes(x,
+                 y,
+                 xend = x_end,
+                 yend = y_end)) +
+  coord_equal()
+```
+
+## Flowers and spirals
+
+![](flowers-titi.jpg)
+
+Read the image using `imager::load.image()`:
+```{r}
+flower <- load.image("flowers-titi.jpg")
+```
+
+Check the size of the image: 
+```{r}
+flower
+```
+
+Convert image to data frame (still working with {imager}):
+```{r}
+flower_df <- flower %>%
+  as.data.frame(wide="c") %>% 
+  mutate(color = rgb(c.1,
+                     c.2,
+                     c.3))
+```
+
+Convert to grayscale and to data frame:
+```{r}
+flower_df_grayscale <- flower %>%
+  grayscale() %>% 
+  as.data.frame()
+```
+
+Join data frames with color and grayscale values:
+```{r}
+flower_df <- flower_df %>%
+  left_join(flower_df_grayscale,
+            by = c("x", "y"))
+```
+
+Convert the image to sf to use sf functions to find nearest features to borrow colors:
+```{r}
+flower_sf <- flower_df %>%
+    st_as_sf(coords = c("x", "y"))
+```
+
+Create a data frame to calculate the values of the spiral with parameters $a$ and $k$:
+```{r}
+# Scale factor
+a <- 0.25
+k <- 0.1
+
+# Initialize data frame
+ds <- data.frame(t = seq(0, 
+                         3500, 
+                         length.out = 8000)) %>%
+  # Calculate polar coordinates and then convert to cartesian coordinates
+  mutate(x_o = 220 + a * (t * cos(t) + k * t),
+         y_o = 460 + a * t * sin(t),
+         x_end = x_o - t/200 * cos(t),
+         y_end = y_o + t/200 * sin(t))
+```
+
+Convert to sf to borrow the colors from the image:
+```{r}
+ds <- ds %>%
+  mutate(x = x_o,
+         y = y_o) %>%
+  st_as_sf(coords = c("x", "y"))
+```
+
+Find the nearest feature in the original image to borrow the colors:
+```{r}
+flower_colors <- flower_df[ds %>%
+                                   st_nearest_feature(flower_sf),]
+```
+
+Bind the colors to the spiral:
+```{r}
+ds <- ds %>%
+  mutate(color = flower_colors$color,
+         value = flower_colors$value)
+```
+
+Plot:
+```{r}
+# Make a scatter plot of points in a spiral
+ggplot() +
+  geom_point(data= flower_df,
+             aes(x,
+                 y,
+                 color = value),
+             #color = "black",
+             shape = 15,
+             size = 6) +
+  scale_color_gradientn(colors = MexBrewer::mex.brewer("Atentado")) +
+  #scale_color_distiller(palette = "Blues") +
+  new_scale_color() +
+  geom_segment(data = ds %>%
+                 filter(x_o > -10 & x_o < 970,
+                        y_o > -10 & y_o < 650),
+               aes(x = x_o,
+                   xend = x_end,
+                   y = y_o,
+                   yend = y_end,
+                   size = t,
+                   color = color)) +
+  scale_y_reverse() +
+  scale_color_identity() +
+  scale_size(range = c(1, 4)) +
+  coord_equal() +
+  theme_void() +
+  theme(legend.position = "none")
+
+ggsave("flower-titi-flow-field-atentado.png",
+       height = 8,
+       width = 8,
+       units = "in")
+```

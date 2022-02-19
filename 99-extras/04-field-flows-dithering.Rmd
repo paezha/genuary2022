@@ -1200,3 +1200,12 @@ ggsave("flower-titi-flow-field-atentado.png",
        width = 8,
        units = "in")
 ```
+
+Try this (see: https://www.facebook.com/mhernandezarrese/posts/10158652605032825):
+
+![](ottawa.jpg)
+
+
+And this by Mike Kukucska:
+
+![](mk-sunrise.jpg)

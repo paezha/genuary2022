@@ -1,0 +1,364 @@
+---
+title: "mariana"
+output: html_notebook
+---
+
+Una foto de mariana.
+
+Cargar paquetes:
+```{r load-packages, message=FALSE}
+library(ggforce)
+library(ggplot2)
+library(imager)
+library(dplyr)
+library(lwgeom)
+library(MexBrewer)
+#library(purrr)
+library(sf)
+library(tidyr)
+```
+
+Leer la imagen con `imager::load.image()`:
+```{r}
+im_name <- "mariana-2"
+im <- load.image(glue::glue("{im_name}.jpg"))
+```
+
+Informacion de la imagen:
+```{r}
+im
+```
+
+Dimensiones de la imagen:
+```{r}
+im_w <- dim(im)[1]
+im_h <- dim(im)[2]
+```
+
+Ratio de aspecto:
+```{r}
+im_aspect <- max(im_w, im_h)/min(im_w, im_h)
+
+if(im_w > im_h){
+  im_h <- im_h * 7/im_w 
+  im_w <- 7
+}else{
+  im_w <- im_w * 7/im_h 
+  im_h <- 7
+}
+```
+
+Trazar:
+```{r}
+plot(im)
+```
+
+Convertir a data frame en escala de grises:
+```{r}
+im_df <- im %>%
+  grayscale() %>% 
+  as.data.frame() %>%
+  mutate(y = -(y - max(y)))
+```
+
+Convertir a data frame con colores:
+```{r}
+color_df <- im %>%
+  as.data.frame(wide="c") %>% 
+  # Reverse the y axis; retrieve the color channels and save as strings with the hexadecimal name of the colors
+  mutate(y = -(y - max(y)),
+         hex_color = rgb(c.1,
+                         c.2,
+                         c.3))
+```
+
+Unir:
+```{r}
+im_df$hex_colors <- color_df$hex_color
+```
+
+Crear polígono para la imagen:
+```{r}
+container_polygon <- matrix(c(0, 0, 
+                              0, max(im_df$y), 
+                              max(im_df$x), max(im_df$y),  
+                              max(im_df$x), 0,
+                              0, 0),
+                            ncol = 2,
+                            byrow = TRUE)
+
+# Convert coordinates to polygons and then to simple features
+container_polygon <- data.frame(id = 1,
+                                r = NA,
+                                geometry = st_polygon(list(container_polygon)) %>% 
+                                  st_sfc()) %>% 
+  st_as_sf()
+```
+
+Trazar:
+```{r}
+ggplot() +
+  geom_point(data = im_df %>%
+               slice_sample(prop = 0.1),
+             aes(x = x, y = y,
+                 color = value)) +
+  geom_vline(xintercept = 720) +
+  geom_hline(yintercept = 850) +
+  coord_equal()
+
+```
+
+<!--Create una navaja para partir el poligono:
+```{r}
+blade <- data.frame(x = 2200, 
+                    y = 1000) %>%
+  st_as_sf(coords = c("x", "y"), 
+           remove = FALSE) 
+
+blade <- rbind(blade %>%
+                 st_buffer(dist = 500),
+               blade %>%
+                 st_buffer(dist = 1000),
+               blade %>%
+                 st_buffer(dist = 1500),
+               blade %>%
+                 st_buffer(dist = 2000)) %>%
+  st_cast(to = "MULTILINESTRING")
+```
+
+Trazar:
+```{r}
+ggplot() +
+  geom_sf(data = container_polygon) + 
+  geom_sf(data = blade,
+          fill = NA)
+```
+
+Cortar el contenedor:
+```{r}
+container_polygon <- st_split(container_polygon,
+                              blade) %>%
+  st_collection_extract(c("POLYGON")) %>%
+  mutate(id = c("5","4", "5", "3", "1", "2")) %>%
+  arrange(id)
+```
+
+Trazar:
+```{r}
+ggplot() +
+  geom_sf(data = container_polygon,
+          aes(fill = id))
+```
+-->
+
+Esta es la función para empacar círculos:
+```{r}
+st_circle_packer <- function(p, max_circles = 100, max_radius = 1, min_radius = 0.1){
+  
+  # p = a simple features object with n >= 1 or more polygon features
+  # max_circles = a number with the maximum number of candidate points for drawing circles
+  # max_radius = a value with the maximum radius for drawing circles; can be a vector of size n so that the largest radius is different by polygon
+  # min_radius = a value with the minimum radius for drawing circles; can be a vector of size n so that the smalest radius is different by polygon
+  
+  # Initialize the table with circles
+  circles <- data.frame()
+  
+  # Initialize table with tolerance parameters
+  radius_pars <- data.frame(id = p$id, 
+                            min_radius, 
+                            max_radius)
+  
+  # Convert polygons to lines
+  p_lines <- p %>%
+    st_cast(to = "MULTILINESTRING")
+  
+  # Create initial set of points for potential circles in the space of the bounding box of the polygons
+  region <- st_bbox(p)
+  c_points <- data.frame(x = runif(n = max_circles,
+                                   min = region[1],
+                                   max = region[3]),
+                         y = runif(n = max_circles,
+                                   min = region[2],
+                                   max = region[4]))
+  
+  # Convert the points to simple features and add a unique point identifier (PID)
+  c_points <- c_points %>%
+    st_as_sf(coords = c("x", "y")) %>%
+    mutate(PID = 1:n())
+  
+  # Find any points that fall outside of a polygon and remove
+  c_points <- c_points %>%
+    st_join(p) %>%
+    drop_na(id)
+  
+  # Initialize stopping criterion
+  stopping_criterion <- TRUE
+  
+  while(stopping_criterion){
+    # Sample one point from each polygon: these points are candidates for circles
+    circle_candidates <- c_points %>% 
+      group_by(id) %>%
+      slice_sample(n =1) %>%
+      ungroup()
+    
+    # Remove the points sampled from the table of points so that they are not considered again in the future
+    c_points <- c_points %>%
+      anti_join(circle_candidates %>%
+                  st_drop_geometry() %>%
+                  select(PID),
+                by = "PID")
+    
+    # Find the distance of the candidate points to the boundaries of the polygons if no circles exist yet
+    if(nrow(circles) == 0){
+      circle_candidates$r <- circle_candidates %>%
+        st_distance(p_lines) %>% 
+        data.frame() %>%
+        apply(1, min)
+    }# Find the distance of the candidate points to the boundaries of the polygons and circles if they exist
+    else{
+      circle_candidates$r <- circle_candidates %>%
+        st_distance(rbind(p_lines, 
+                          circles %>%
+                            select(-PID))) %>% 
+        data.frame() %>%
+        apply(1, min)
+    }
+    
+    # Join the tolerance parameters and filter candidates with a radius greater than the minimum
+    circle_candidates <- circle_candidates %>% 
+      left_join(radius_pars, by = "id") %>%
+      filter(r >= min_radius)
+    
+    # Make sure that the radius does not exceed the maximum
+    circle_candidates <- circle_candidates %>%
+      mutate(r = ifelse(r >= max_radius, max_radius, r)) %>%
+      select(-c(min_radius, max_radius)) # Drop tolerance parameters from table, no longer needed
+    
+    # If there are candidates points with a radius above the tolerance then create circles
+    if(nrow(circle_candidates) > 0){
+      # Use the points and buffers to create circles that are added to the existing table of circles
+      circles <- rbind(circles,
+                       circle_candidates %>%
+                         st_buffer(dist = circle_candidates$r))
+      
+      # Clear points that are now _inside_ a circle from the candidates (the radius will _not_ be NA)
+      c_points <- c_points %>%
+        select(-c(r)) %>% 
+        st_join(circles %>%
+                  select(r)) %>%
+        filter(is.na(r))
+    }
+    stopping_criterion <- nrow(c_points) > 0
+  }
+  return(circles)
+}
+```
+
+Empacar la secuencia de círculos:
+```{r}
+# Set random seed
+seed <- sample.int(100000, 1)
+set.seed(seed)
+
+# Pack polygons
+circles_1 <- container_polygon %>% 
+  st_circle_packer(max_circles = 50000, 
+                   max_radius = c(10, 15),
+                   min_radius = c(2.5, 3.75))
+```
+
+Trazar:
+```{r}
+ggplot() + 
+  geom_sf(data = circles_1)
+```
+
+Convertir imagen a sf:
+```{r}
+im_sf <- im_df %>%
+  st_as_sf(coords = c("x", "y"), 
+           remove = FALSE)
+```
+
+Identificar el pixel más cercano al centroide del círculo:
+```{r}
+idx <- circles_1 %>%
+  st_nearest_feature(im_sf)
+```
+
+Copiar los valores de la escala de grises de la imagen:
+```{r}
+circles_1$value <- im_sf$value[idx]
+circles_1$hex_colors <- im_sf$hex_colors[idx]
+```
+
+Coordenadas de los circulos:
+```{r}
+circles_1 <- circles_1 %>%
+  cbind(st_centroid(circles_1) %>% st_coordinates())
+```
+
+Añadir otras variables relevantes:
+```{r}
+circles_1 <- circles_1 %>%
+               #filter(X < 2000, Y < 1000) %>%
+               mutate(angle = runif(n(), 0, 2 * pi),
+                      sides = case_when(id == "1" | id == "2" ~ sample(c(3, 4), n(), replace = TRUE),
+                                        id == "3" | id == "4" ~ sample(c(4, 5), n(), replace = TRUE),
+                                        id == "5" ~ sample(c(5, 6), n(), replace = TRUE)),
+                      r2 = case_when(id == "1" ~ r * 1.25,
+                                     id == "2" ~ r * 1.23,
+                                     id == "3" ~ r * 1.20,
+                                     id == "4" ~ r * 1.18,
+                                     id == "5" ~ r * 1.16))
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = container_polygon,
+          color = "black",
+          fill = "black",
+          size = 2) +
+  geom_regon(data = circles_1,
+             aes(x0 = X, y0 = Y,
+                 r = r2,
+                 angle = angle, 
+                 sides = sides,
+                 fill = hex_colors,
+                 color = hex_colors),
+             size = 0.25) +
+  scale_fill_identity() +
+  scale_color_identity() +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.margin = margin(0.1, 0.1, 0.1, 0.1, "in"))
+
+ggsave(glue::glue("daniel-{im_name}-{seed}.png"),
+       height = im_h,
+       width = im_w,
+       units = "in")
+```
+
+
+Trazar:
+```{r}
+ggplot() + 
+  geom_sf(data = container_polygon,
+          color = "black",
+          fill = "black",
+          size = 2) +
+  geom_sf(data = circles_1,
+          aes(fill = hex_colors),
+          color = NA) +
+  scale_fill_identity() +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.margin = margin(0.1, 0.1, 0.1, 0.1, "in"))
+
+ggsave(glue::glue("{im_name}-{seed}.png"),
+       height = im_h,
+       width = im_w,
+       units = "in")
+```
+

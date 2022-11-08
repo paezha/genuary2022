@@ -124,7 +124,8 @@ ggplot(text_df) +
   scale_color_gradientn(colors = col_palette) +
   scale_size(range = c(0.75, 1.55)) +
   theme_void() +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        plot.background = element_rect(color = "white"))
 
 ggsave("me-pi-tierra.png", 
        width = 7,

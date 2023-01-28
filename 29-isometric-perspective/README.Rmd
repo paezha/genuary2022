@@ -79,8 +79,6 @@ cube_up <- function(x, y){
         face_3)
 }
 
-
-
 ```
 
 Create a function to generate the faces of an isometric cube "down" direction:

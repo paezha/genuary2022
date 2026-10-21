@@ -4,6 +4,7 @@
 # Negative space
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 I wanted to do something with the isometric perspectives, reveal a cube
@@ -19,18 +20,20 @@ library(gganimate)
 library(MexBrewer)
 library(purrr)
 library(sf)
-#> Linking to GEOS 3.9.1, GDAL 3.2.1, PROJ 7.2.1; sf_use_s2() is TRUE
+#> Linking to GEOS 3.12.2, GDAL 3.11.4, PROJ 9.4.1; sf_use_s2() is TRUE
 library(showtext)
 #> Loading required package: sysfonts
 #> Loading required package: showtextdb
 library(tidyverse)
-#> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
-#> v tibble  3.1.6     v dplyr   1.0.7
-#> v tidyr   1.1.4     v stringr 1.4.0
-#> v readr   2.1.1     v forcats 0.5.1
-#> -- Conflicts ------------------------------------------ tidyverse_conflicts() --
-#> x dplyr::filter() masks stats::filter()
-#> x dplyr::lag()    masks stats::lag()
+#> ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+#> ✔ dplyr     1.2.1     ✔ stringr   1.6.0
+#> ✔ forcats   1.0.1     ✔ tibble    3.3.1
+#> ✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+#> ✔ readr     2.2.0
+#> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+#> ✖ dplyr::filter() masks stats::filter()
+#> ✖ dplyr::lag()    masks stats::lag()
+#> ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 ```
 
 Ok, so the idea is to create paths that “trace” the faces of a cube in
@@ -221,7 +224,8 @@ p <- ggplot(df2, aes(pos_x, pos_y, group = plot_group)) +
   shadow_wake(wake_length = 1.1)
 ```
 
-Animate:
+Animate (Important! Rendering uses package {gifski}, make sure that it
+is installed):
 
 ``` r
 animate(p, 

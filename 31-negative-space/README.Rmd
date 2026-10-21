@@ -197,7 +197,7 @@ p <- ggplot(df2, aes(pos_x, pos_y, group = plot_group)) +
   shadow_wake(wake_length = 1.1)
 ```
 
-Animate:
+Animate (Important! Rendering uses package {gifski}, make sure that it is installed):
 ```{r}
 animate(p, 
         rewind = FALSE,
